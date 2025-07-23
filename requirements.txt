@@ -2,3 +2,4 @@ streamlit
 streamlit_modal
 google-generativeai
 Pillow
+requests

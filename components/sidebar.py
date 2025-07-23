@@ -2,20 +2,38 @@ import streamlit as st
 import webbrowser
 from datetime import datetime
 from core.utils import create_new_conversation, get_current_time
+import requests
 
-# Emergency contacts and resources
-emergency_resources = {
-    "Crisis Hotlines": [
+# Get the user's country based on their IP address
+# This is used to provide localized resources and emergency contacts.
+def get_user_country():
+    try:
+        resp = requests.get("https://ipinfo.io/json", timeout=2)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("country", None)
+    except Exception:
+        pass
+    return None
+
+country_helplines = {
+    "US": [
         "National Suicide Prevention Lifeline: 988",
         "Crisis Text Line: Text HOME to 741741",
         "SAMHSA National Helpline: 1-800-662-4357"
     ],
-    "International": [
-        "India: 9152987821 (AASRA)",
-        "UK: 116 123 (Samaritans)",
-        "Australia: 13 11 14 (Lifeline)"
+    "IN": [
+        "AASRA: 9152987821",
+        "Sneha Foundation: 044-24640050"
+    ],
+    "GB": [
+        "Samaritans: 116 123"
+    ],
+    "AU": [
+        "Lifeline: 13 11 14"
     ]
 }
+IASP_LINK = "https://findahelpline.com/"
 
 mental_health_resources_full = {
     "Depression & Mood Disorders": {
@@ -282,11 +300,20 @@ def render_sidebar():
                         st.markdown("---")
 
         with st.expander("☎️ Crisis Support"):
-            st.markdown("**24/7 Crisis Hotlines:**")
-            for category, numbers in emergency_resources.items():
-                st.markdown(f"**{category}:**")
-                for number in numbers:
-                    st.markdown(f"• {number}")
+            # Provide localized helplines based on user's country
+            user_country = get_user_country()
+            country_label = user_country if user_country else "your country"
+            st.markdown("### 🚨 Emergency Help")
+            if user_country and user_country in country_helplines:
+                st.markdown(f"**Helplines for {country_label}:**")
+                for line in country_helplines[user_country]:
+                    st.markdown(f"• {line}")
+            else:
+                st.markdown(
+                    f"Couldn't detect a local helpline for {country_label}. [Find help worldwide via IASP]({IASP_LINK})"
+                )
+
+            st.markdown("---")
 
         with st.expander("ℹ️ About TalkHeal"):
             st.markdown("""
