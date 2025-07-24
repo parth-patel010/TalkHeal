@@ -8,11 +8,27 @@ def get_base64_of_bin_file(bin_file):
     return base64.b64encode(data).decode()
 
 def apply_custom_css():
-    # Path to your background image
-    background_image_path = "Background.jpg"
+    # Import theme configuration
+    from core.theme import get_current_theme
+    theme_config = get_current_theme()
     
-    # Encode the image to base64
-    base64_image = get_base64_of_bin_file(background_image_path)
+    # Path to background image based on theme
+    background_image_path = theme_config.get('background_image', 'Background.jpg')
+    background_gradient = theme_config.get('background_gradient', None)
+    
+    base64_image = None
+    if background_image_path:
+        try:
+            base64_image = get_base64_of_bin_file(background_image_path)
+        except Exception:
+            base64_image = None
+    
+    if base64_image:
+        background_css = f'background-image: url("data:image/jpeg;base64,{base64_image}");'
+    elif background_gradient:
+        background_css = f'background-image: {background_gradient};'
+    else:
+        background_css = ''
     
     st.markdown(f"""
     <style>
@@ -20,35 +36,41 @@ def apply_custom_css():
         
         /* Root variables for consistent theming */
         :root {{
-            --primary-color: #6366f1;
-            --primary-light: #818cf8;
-            --primary-dark: #4f46e5;
-            --secondary-color: #ec4899;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --surface: rgba(255, 255, 255, 0.15);
-            --surface-alt: rgba(255, 255, 255, 0.25);
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --text-muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.3);
-            --border-light: rgba(255, 255, 255, 0.2);
-            --shadow: rgba(0, 0, 0, 0.15);
-            --shadow-lg: rgba(0, 0, 0, 0.25);
+            --primary-color: {theme_config['primary']};
+            --primary-light: {theme_config['primary_light']};
+            --primary-dark: {theme_config['primary_dark']};
+            --secondary-color: {theme_config['secondary']};
+            --success-color: {theme_config['success']};
+            --warning-color: {theme_config['warning']};
+            --danger-color: {theme_config['danger']};
+            --surface: {theme_config['surface']};
+            --surface-alt: {theme_config['surface_alt']};
+            --text-primary: {theme_config['text_primary']};
+            --text-secondary: {theme_config['text_secondary']};
+            --text-muted: {theme_config['text_muted']};
+            --border: {theme_config['border']};
+            --border-light: {theme_config['border_light']};
+            --shadow: {theme_config['shadow']};
+            --shadow-lg: {theme_config['shadow_lg']};
             --radius: 12px;
             --radius-lg: 16px;
-            --light-transparent-bg: rgba(255, 255, 255, 0.4);
-            --light-transparent-bg-hover: rgba(255, 255, 255, 0.6);
-            --light-transparent-border: rgba(255, 255, 255, 0.5);
-            --active-conversation-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(129, 140, 248, 0.9) 100%);
-            --active-conversation-border: rgba(99, 102, 241, 0.8);
-            --active-conversation-shadow: rgba(99, 102, 241, 0.4);
+            --light-transparent-bg: {theme_config['light_transparent_bg']};
+            --light-transparent-bg-hover: {theme_config['light_transparent_bg_hover']};
+            --light-transparent-border: {theme_config['light_transparent_border']};
+            --active-conversation-bg: {theme_config['active_conversation_bg']};
+            --active-conversation-border: {theme_config['active_conversation_border']};
+            --active-conversation-shadow: {theme_config['active_conversation_shadow']};
+            --background-overlay: {theme_config['background_overlay']};
+            --main-text-color: {theme_config['main_text_color']};
+            --sidebar-bg: {theme_config['sidebar_bg']};
+            --sidebar-text: {theme_config['sidebar_text']};
+            --input-bg: {theme_config['input_bg']};
+            --input-text: {theme_config['input_text']};
         }}
         
         /* Global styles - Set the background image */
         .stApp {{
-            background-image: url("data:image/jpeg;base64,{base64_image}");
+            {background_css}
             background-size: cover;
             background-repeat: no-repeat;
             background-attachment: fixed;
@@ -65,7 +87,7 @@ def apply_custom_css():
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--background-overlay);
             z-index: -1;
         }}
         
@@ -221,11 +243,9 @@ def apply_custom_css():
             color: white;
             border-radius: var(--radius-lg);
             margin-bottom: 24px;
-            box-shadow: 0 8px 32px var(--shadow-lg);
             border: 1px solid var(--border-light);
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
         }}
         
         .main-header::before {{
@@ -235,17 +255,14 @@ def apply_custom_css():
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            background: var(--primary-color);
         }}
         
         .main-header h1 {{
             margin: 0 0 8px 0;
             font-size: 2.5em;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #921A40;
         }}
         
         .main-header p {{
@@ -290,6 +307,128 @@ def apply_custom_css():
             backdrop-filter: blur(10px);
         }}
         
+        /* Theme section specific styling */
+        .stApp [data-testid="stSidebar"] .streamlit-expanderHeader {{
+            font-weight: 600 !important;
+            color: var(--sidebar-text) !important;
+        }}
+        
+        .stApp [data-testid="stSidebar"] .streamlit-expanderContent {{
+            padding: 12px 0 !important;
+        }}
+        
+        /* Theme preview circles */
+        .theme-preview-circle {{
+            width: 25px !important;
+            height: 25px !important;
+            border-radius: 50% !important;
+            border: 2px solid var(--sidebar-text) !important;
+            box-shadow: 0 2px 8px var(--shadow) !important;
+            margin: 0 auto !important;
+            display: block !important;
+        }}
+        
+        /* Theme info box */
+        .theme-info-box {{
+            background: var(--light-transparent-bg) !important;
+            border-radius: 8px !important;
+            padding: 10px !important;
+            margin-bottom: 15px !important;
+            text-align: center !important;
+            border: 1px solid var(--light-transparent-border) !important;
+            backdrop-filter: blur(5px) !important;
+        }}
+        
+        .theme-info-box strong {{
+            color: var(--sidebar-text) !important;
+            font-weight: 600 !important;
+        }}
+        
+        .theme-info-box span {{
+            font-size: 1.1em !important;
+            color: var(--primary-color) !important;
+            font-weight: 600 !important;
+        }}
+        
+        /* Dark mode specific adjustments */
+        .stApp [data-testid="stSidebar"] .streamlit-expanderHeader {{
+            background: transparent !important;
+            border: none !important;
+            padding: 8px 12px !important;
+            border-radius: 8px !important;
+            transition: all 0.2s ease !important;
+        }}
+        
+        .stApp [data-testid="stSidebar"] .streamlit-expanderHeader:hover {{
+            background: var(--light-transparent-bg) !important;
+            backdrop-filter: blur(5px) !important;
+        }}
+        
+        .stApp [data-testid="stSidebar"] .streamlit-expanderHeader[aria-expanded="true"] {{
+            background: var(--light-transparent-bg) !important;
+            border-radius: 8px 8px 0 0 !important;
+            backdrop-filter: blur(5px) !important;
+        }}
+        
+        .stApp [data-testid="stSidebar"] .streamlit-expanderContent {{
+            background: var(--light-transparent-bg) !important;
+            border-radius: 0 0 8px 8px !important;
+            border: 1px solid var(--light-transparent-border) !important;
+            border-top: none !important;
+            backdrop-filter: blur(5px) !important;
+            margin-top: 0 !important;
+        }}
+        
+        /* Info box styling for better dark mode visibility */
+        .stApp [data-testid="stSidebar"] .stAlert {{
+            background: var(--light-transparent-bg) !important;
+            border: 1px solid var(--light-transparent-border) !important;
+            color: var(--sidebar-text) !important;
+            backdrop-filter: blur(5px) !important;
+        }}
+        
+        /* Theme toggle button specific styling - both top and sidebar */
+        .stApp button[key="theme_toggle"],
+        .stApp button[key="sidebar_theme_toggle"] {{
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+            overflow: hidden !important;
+            min-height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0.9em !important;
+            line-height: 1.2 !important;
+            word-break: keep-all !important;
+            background: var(--light-transparent-bg) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--light-transparent-border) !important;
+            border-radius: var(--radius) !important;
+            padding: 12px 16px !important;
+            font-weight: 600 !important;
+            transition: all 0.2s ease !important;
+            font-family: 'Inter', sans-serif !important;
+            box-shadow: 0 2px 8px var(--shadow) !important;
+            backdrop-filter: blur(5px) !important;
+        }}
+        
+        .stApp button[key="theme_toggle"]:hover,
+        .stApp button[key="sidebar_theme_toggle"]:hover {{
+            background: var(--light-transparent-bg-hover) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px var(--shadow-lg) !important;
+        }}
+        
+        /* Ensure button text doesn't wrap */
+        .stApp button[key="theme_toggle"] span,
+        .stApp button[key="sidebar_theme_toggle"] span {{
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }}
+        
+
+        
         /* Button styling*/
         button, 
         .stButton > button,
@@ -306,6 +445,13 @@ def apply_custom_css():
             font-family: 'Inter', sans-serif !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
             backdrop-filter: blur(5px) !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+            overflow: hidden !important;
+            min-height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }}
         
         button:hover, 
@@ -360,27 +506,45 @@ def apply_custom_css():
         /* Form input styling */
         .stTextInput > div > div > input,
         .stTextArea > div > div > textarea {{ /* Added textarea for mood journal */
-            background: purple !important;
+            background: var(--input-bg) !important;
             border: 2px solid var(--border) !important;
             border-radius: var(--radius) !important;
             padding: 12px 16px !important;
             font-size: 1em !important;
-            color: white; !important;
+            color: #111 !important;
             font-family: 'Inter', sans-serif !important;
             transition: all 0.2s ease !important;
             backdrop-filter: blur(5px) !important;
         }}
-        
-        .stTextInput > div > div > input:focus,
-        .stTextArea > div > div > textarea:focus {{
-            border-color: var(--primary-color) !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
-            outline: none !important;
+        .stTextInput > div > div > input::placeholder,
+        .stTextArea > div > div > textarea::placeholder {{
+            color: #111 !important;
+            opacity: 1 !important;
+        }}
+        .stTextInput > div > div > input::-webkit-input-placeholder,
+        .stTextArea > div > div > textarea::-webkit-input-placeholder {{
+            color: #111 !important;
+            opacity: 1 !important;
+        }}
+        .stTextInput > div > div > input::-moz-placeholder,
+        .stTextArea > div > div > textarea::-moz-placeholder {{
+            color: #111 !important;
+            opacity: 1 !important;
+        }}
+        .stTextInput > div > div > input:-ms-input-placeholder,
+        .stTextArea > div > div > textarea:-ms-input-placeholder {{
+            color: #111 !important;
+            opacity: 1 !important;
+        }}
+        .stTextInput > div > div > input::-ms-input-placeholder,
+        .stTextArea > div > div > textarea::-ms-input-placeholder {{
+            color: #111 !important;
+            opacity: 1 !important;
         }}
         
         /* Sidebar styling */
         .stApp [data-testid="stSidebar"] {{
-            background: var(--surface) !important;
+            background: var(--sidebar-bg) !important;
             border-right: 1px solid var(--border-light) !important;
             box-shadow: 4px 0 24px var(--shadow-lg) !important;
             backdrop-filter: blur(10px) !important;
@@ -394,7 +558,7 @@ def apply_custom_css():
         .stApp [data-testid="stSidebar"] p,
         .stApp [data-testid="stSidebar"] label,
         .stApp [data-testid="stSidebar"] .stMarkdown {{
-            color: var(--text-primary) !important;
+            color: var(--sidebar-text) !important;
             text-shadow: none !important;
         }}
         
@@ -405,7 +569,7 @@ def apply_custom_css():
         .stApp .main h4,
         .stApp .main p,
         .stApp .main .stMarkdown {{
-            color: white !important;
+            color: var(--main-text-color) !important;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
         }}
         
@@ -451,5 +615,16 @@ def apply_custom_css():
             .main-header h1 {{
                 font-size: 2em;
             }}
+        }}
+
+        /* Custom mood selector radio buttons - white circles */
+        .stRadio > div[role='radiogroup'] > label > div:first-child {{
+            background: white !important;
+            border: 2px solid var(--primary-color) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+        }}
+        .stRadio > div[role='radiogroup'] > label > div:first-child svg {{
+            color: var(--primary-color) !important;
+        }}
     </style>
     """, unsafe_allow_html=True)

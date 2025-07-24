@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+from core.utils import save_conversations, load_conversations
 
 from core.config import configure_gemini, PAGE_CONFIG
 from core.utils import get_current_time, create_new_conversation
@@ -11,7 +12,7 @@ from components.chat_interface import render_chat_interface, handle_chat_input
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "conversations" not in st.session_state:
-    st.session_state.conversations = []
+    st.session_state.conversations = load_conversations()
 if "active_conversation" not in st.session_state:
     st.session_state.active_conversation = -1
 if "mental_disorders" not in st.session_state:
@@ -41,23 +42,18 @@ apply_custom_css()
 
 model = configure_gemini()
 
-col_toggle, col_main = st.columns([0.05, 0.95])
-
-with col_toggle:
-    if st.button("☰", key="persistent_sidebar_toggle", help="Toggle Sidebar"):
-        if st.session_state.sidebar_state == "expanded":
-            st.session_state.sidebar_state = "collapsed"
-        else:
-            st.session_state.sidebar_state = "expanded"
-        st.rerun()
-
 render_sidebar()
 
 render_header()
 
 if not st.session_state.conversations:
-    create_new_conversation()
-    st.session_state.active_conversation = 0
+    saved_conversations=load_conversations()
+    if saved_conversations:
+        st.session_state.conversations=saved_conversations
+        st.session_state.active_conversation = 0
+    else:
+        create_new_conversation()
+        st.session_state.active_conversation = 0
 
 render_chat_interface()
 

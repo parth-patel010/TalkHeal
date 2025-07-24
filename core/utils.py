@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
 import streamlit as st
 import re
+import json
+import os
+import requests
 
 def get_current_time():
     """Returns the user's local time formatted as HH:MM AM/PM."""
@@ -81,3 +84,28 @@ def get_ai_response(user_message, model):
         return cleaned_response
     except Exception as e:
         return "I'm here to listen and support you. Sometimes I have trouble connecting, but I want you to know that your feelings are valid and you're not alone. Would you like to share more about what you're experiencing?"
+
+#Implementing IP Based Isolation
+def get_user_ip():
+    try:
+        return requests.get("https://api.ipify.org").text
+    except:
+        return "unknown_ip"
+
+#Saving and loading to/from JSON File
+def get_memory_file():
+    ip = get_user_ip()
+    os.makedirs("data", exist_ok=True)
+    return f"data/conversations_{ip}.json"
+
+def save_conversations(conversations):
+    memory_file = get_memory_file()
+    with open(memory_file, 'w', encoding="utf-8") as f:
+        json.dump(conversations, f, indent=4)
+
+def load_conversations():
+    memory_file = get_memory_file()
+    if not os.path.exists(memory_file):
+        return []
+    with open(memory_file, 'r', encoding="utf-8") as f:
+        return json.load(f)

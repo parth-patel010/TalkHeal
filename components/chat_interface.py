@@ -5,6 +5,7 @@ import streamlit.components.v1 as components
 import streamlit as st
 from datetime import datetime, timedelta
 import json
+from core.utils import save_conversations, load_conversations
 
 def set_user_time_in_session():
     if "user_time_offset" not in st.session_state:
@@ -102,12 +103,23 @@ def handle_chat_input(model):
                 "message": user_input.strip(), 
                 "time": current_time
             })
+            save_conversations(st.session_state.conversations)
             if len(active_convo["messages"]) == 1:
                 title = user_input[:30] + "..." if len(user_input) > 30 else user_input
                 active_convo["title"] = title
             with st.spinner("TalkHeal is thinking..."):
                 try:
-                    ai_response = get_ai_response(user_input.strip(), model)
+                    def format_memory_for_prompt(convo_history, max_turns=10):
+                        context = ""
+                        for msg in convo_history[-max_turns*2:]:  # user+bot per turn
+                            sender = "User" if msg["sender"] == "user" else "Bot"
+                            context += f"{sender}: {msg['message']}\n"
+                        return context
+
+                    context = format_memory_for_prompt(active_convo["messages"])
+                    full_prompt = context + f"User: {user_input.strip()}\nBot:"
+
+                    ai_response = get_ai_response(full_prompt, model)
                     
                     active_convo["messages"].append({
                         "sender": "bot", 
@@ -122,4 +134,5 @@ def handle_chat_input(model):
                         "message": "I apologise, but I'm having trouble responding right now. Please try again in a moment.", 
                         "time": get_current_time()
                     })
+                    save_conversations(st.session_state.conversations)
             st.rerun()
