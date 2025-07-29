@@ -3,6 +3,9 @@ import webbrowser
 from datetime import datetime
 from core.utils import create_new_conversation, get_current_time
 from core.theme import get_current_theme, toggle_theme, set_palette, PALETTES
+from components.profile import initialize_profile_state, render_profile_section
+
+
 # --- Structured Emergency Resources ---
 GLOBAL_RESOURCES = [
     {"name": "Befrienders Worldwide", "desc": "Emotional support to prevent suicide worldwide.",
@@ -73,8 +76,9 @@ mental_health_resources_full = {
 
 def render_sidebar():
     """Renders the left and right sidebars."""
-
+     
     with st.sidebar:
+        render_profile_section()
         st.markdown("### 💬 Conversations")
         if "show_quick_start_prompts" not in st.session_state:
             st.session_state.show_quick_start_prompts = False
@@ -124,9 +128,19 @@ def render_sidebar():
                             st.session_state.active_conversation = i
                             st.rerun()
                     with col2:
-                        if st.button("🗑️", key=f"delete_{i}", type="primary"):
-                            st.session_state.delete_candidate = i
-                            st.rerun()
+                        if convo["messages"]:
+                            if st.button("🗑️", key=f"delete_{i}", type="primary", use_container_width=True):
+                                st.session_state.delete_candidate = i
+                                st.rerun()
+                        else:
+                                st.button(
+                                "🗑️",
+                                key=f"delete_{i}",
+                                type="primary",
+                                use_container_width=True,
+                                disabled=not convo["messages"]  # Disable if it's a new/empty conversation
+                            )
+
 
             else:
                 st.warning(
@@ -291,7 +305,7 @@ def render_sidebar():
                 for i, tab_title in enumerate(mental_health_resources_full.keys()):
                     with resource_tabs[i]:
                         topic_data = mental_health_resources_full[tab_title]
-                        st.markdown(f"**{tab_title}**")  # fixed typo
+                        st.markdown(f"**{tab_title}**")
                         st.info(topic_data['description'])
                         for link in topic_data['links']:
                             st.markdown(f"• [{link['label']}]({link['url']})")
@@ -341,22 +355,82 @@ def render_sidebar():
             ):
                 toggle_theme()
 
-        with st.expander("ℹ️ About TalkHeal"):
+        # Quizzes expander (no longer contains nested expander)
+        with st.expander("🧪 Take PsyToolkit Verified Quizzes"):
             st.markdown("""
-            **TalkHeal** is your compassionate mental health companion, designed to provide:
-
-            • 24/7 emotional support
-            • Resource guidance
-            • Crisis intervention
-            • Professional referrals
-
-            **Remember:** This is not a substitute for professional mental health care.
-
-            ---
-
-            **Created with ❤️ by [Eccentric Explorer](https://eccentriccoder01.github.io/Me)**
-
-            *"It's absolutely okay not to be okay :)"*
-
-            📅 Enhanced Version - May 2025
+            Explore scientifically backed quizzes to better understand your mental well-being. These tools are for **self-awareness** and not clinical diagnosis.
             """)
+
+            quizzes = [
+                {
+                    "name": "GAD-7 (Anxiety Assessment)",
+                    "desc": "Measures severity of generalized anxiety symptoms.",
+                    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=u8bAf",
+                    "score_info": """
+                    Score Interpretation:
+                    GAD-7 score runs from 0 to 21
+                    - 0–4: Minimal anxiety  
+                    - 5–9: Mild anxiety  
+                    - 10–14: Moderate anxiety  
+                    - 15–21: Severe anxiety
+                    """
+                },
+                {
+                    "name": "PHQ-9 (Depression Assessment)",
+                    "desc": "Screens for presence and severity of depression.",
+                    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=Hj32b",
+                    "score_info": """
+                    Score Interpretation:
+                    - 0–4: Mild depression  
+                    - 5–9: Moderate depression  
+                    - 10–14: Moderately severe depression  
+                    - 15–19: Severe depression 
+                    """
+                },
+                {
+                    "name": "The WHO-5 Well-Being Index",
+                    "desc": "Five simple non-intrusive questions to assess well-being. Score ranges from 0 (poor) to 100 (excellent).",
+                    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=POqLJ",
+                    "score_info": """
+                    Score Interpretation:
+                    -if your score is 50 or lower you should consider 
+                    -further checks on whether you suffer 
+                    -from clinical depression
+                    """
+                },
+               {
+    "name": "Depression Anxiety Stress Scales (DASS)",
+    "desc": "Measures depression, anxiety, and stress using one combined questionnaire.",
+    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=HvfDY",
+    "score_info": "**Score Interpretation (per subscale):**\n\n- **Normal, Mild, Moderate, Severe, Extremely Severe**\n\n|          | Depression | Anxiety | Stress  |\n|----------|------------|---------|---------|\n| Normal   | 0-9        | 0-7     | 0-14    |\n| Mild     | 10-13      | 8-9     | 15-18   |\n| Moderate | 14-20      | 10-14   | 19-25   |\n| Severe   | 21-27      | 15-19   | 26-33   |\n| Extremely Severe | 28+ | 20+ | 34+ |"
+}
+            ]
+
+            for quiz in quizzes:
+                st.markdown(f"""
+                **{quiz['name']}**  
+                *{quiz['desc']}*  
+                [🔗 Take Quiz]({quiz['url']})  
+                {quiz['score_info']}
+                """)
+
+        # About section moved outside of any expander
+        st.markdown("---")
+        st.markdown("""
+        **ℹ️ About TalkHeal**  
+        Your compassionate mental health companion, designed to provide:
+        
+        • 24/7 emotional support  
+        • Resource guidance  
+        • Crisis intervention  
+        • Professional referrals  
+        
+        **Remember:** This is not a substitute for professional mental health care.
+        
+        ---
+        
+        **Created with ❤️ by [Eccentric Explorer](https://eccentriccoder01.github.io/Me)**  
+        *"It's absolutely okay not to be okay :)"*  
+        
+        📅 Enhanced Version - May 2025
+        """)

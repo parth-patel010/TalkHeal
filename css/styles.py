@@ -516,7 +516,7 @@ def apply_custom_css():
         .stTextInput > div > div > input,
         .stTextArea > div > div > textarea {{
             background: var(--glass-effect) !important;
-            background-color: #FFFFD0 !important;
+            background-color: #FFDDEE !important;
             border: 2px solid var(--border) !important;
             border-radius: var(--radius) !important;
             font-size: 1em !important;

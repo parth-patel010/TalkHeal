@@ -1,4 +1,13 @@
 import streamlit as st
+
+# ✅ MUST be the first Streamlit command
+st.set_page_config(
+    page_title="TalkHeal",
+    page_icon="💬",
+    layout="wide",
+    initial_sidebar_state=st.session_state.get("sidebar_state", "expanded")
+)
+
 import google.generativeai as genai
 from core.utils import save_conversations, load_conversations
 from core.config import configure_gemini, PAGE_CONFIG
@@ -7,8 +16,13 @@ from css.styles import apply_custom_css
 from components.header import render_header
 from components.sidebar import render_sidebar
 from components.chat_interface import render_chat_interface, handle_chat_input
+
 # from components.emergency_page import render_emergency_page
 from components.focus_session import render_focus_session
+
+from components.emergency_page import render_emergency_page
+from components.profile import apply_global_font_size
+
 
 # --- 1. INITIALIZE SESSION STATE ---
 if "chat_history" not in st.session_state:
@@ -34,12 +48,8 @@ if "selected_tone" not in st.session_state:
     st.session_state.selected_tone = "Compassionate Listener"
 
 # --- 2. SET PAGE CONFIG ---
-st.set_page_config(
-    page_title=PAGE_CONFIG["page_title"],
-    page_icon=PAGE_CONFIG["page_icon"],
-    layout=PAGE_CONFIG["layout"],
-    initial_sidebar_state=st.session_state.sidebar_state
-)
+apply_global_font_size()
+
 
 # --- 3. APPLY STYLES & CONFIGURATIONS ---
 apply_custom_css()
@@ -95,7 +105,11 @@ if st.session_state.get("show_focus_session"):
 else:
     with main_area:
         render_header()
-        st.subheader(f"🗣️ Current Chatbot Tone: **{st.session_state['selected_tone']}**")
+        st.markdown(f"""
+<div style="text-align: center; margin: 20px 0;">
+    <h3>🗣️ Current Chatbot Tone: <strong>{st.session_state['selected_tone']}</strong></h3>
+</div>
+""", unsafe_allow_html=True)
         render_chat_interface()
         handle_chat_input(model, system_prompt=get_tone_prompt())
 
@@ -110,4 +124,4 @@ st.markdown("""
     }
     setTimeout(scrollToBottom, 100);
 </script>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True) 
