@@ -5,3 +5,4 @@ geopy
 requests
 Pillow
 streamlit-lottie
+bcrypt
