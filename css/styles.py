@@ -63,21 +63,8 @@ def apply_custom_css():
             --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }}
 
-        /* Streamlit header and toolbar fixes */
         .stApp > header {{
             background-color: transparent !important;
-        }}
-        
-        div[data-testid="stToolbar"] {{
-            visibility: hidden;
-        }}
-        
-        .stDeployButton {{
-            visibility: hidden;
-        }}
-        
-        footer {{
-            visibility: hidden;
         }}
         
         /* Main app background and styling */
