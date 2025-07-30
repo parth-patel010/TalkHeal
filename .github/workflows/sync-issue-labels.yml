@@ -3,30 +3,25 @@ name: Sync Labels from Issues to Merged PRs
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'  # Optional: runs every day at 2 AM UTC
+    - cron: '0 2 * * *'  # optional daily run
 
 jobs:
   sync-labels:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install GitHub CLI and jq
+      - name: Install GitHub CLI & jq
         run: |
           sudo apt-get update
           sudo apt-get install -y gh jq
-      
-      - name: Authenticate GitHub CLI
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token --hostname github.com
+
+      - name: Sync labels from linked issues to merged PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Fetch merged PRs and sync labels from issues
-        env:
           REPO: eccentriccoder01/talkheal
-          MAX_RETRIES: 3
         run: |
           echo "📥 Fetching merged PRs for $REPO..."
           gh pr list --state merged --limit 100 --repo "$REPO" --json number,title,body > merged_prs.json
@@ -53,20 +48,8 @@ jobs:
             fi
 
             while IFS= read -r label; do
-              success=false
-              for attempt in $(seq 1 $MAX_RETRIES); do
-                echo "🏷️  Applying label '$label' to PR #$pr_number (Attempt $attempt)..."
-                if gh pr edit "$pr_number" --repo "$REPO" --add-label "$label"; then
-                  success=true
-                  break
-                fi
-                echo "⚠️  Failed to apply label '$label'. Retrying in 2s..."
-                sleep 2
-              done
-
-              if [ "$success" = false ]; then
-                echo "❌ Giving up on label '$label' after $MAX_RETRIES attempts."
-              fi
+              echo "🏷️  Applying label '$label' to PR #$pr_number..."
+              gh pr edit "$pr_number" --repo "$REPO" --add-label "$label"
             done <<< "$issue_labels"
 
             sleep 0.5
