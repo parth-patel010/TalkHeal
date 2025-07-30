@@ -1,51 +1,17 @@
-name: Assign PR Authors to Merged PRs
+# .github/workflows/auto-author-assign.yml
+name: Auto Author Assign
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 3 * * *'  # runs daily at 3 AM UTC (8:30 AM IST)
+  pull_request_target:
+    types: [ opened, reopened ]
+
+permissions:
+  pull-requests: write
 
 jobs:
-  assign-authors:
+  assign-author:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install GitHub CLI and jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gh jq
-
-      - name: Assign authors to their merged PRs
-        env:
-          GH_TOKEN: ${{ secrets.GH_PERSONAL_TOKEN }}
-          REPO: eccentriccoder01/talkheal
-        run: |
-          echo "📥 Fetching merged PRs for $REPO..."
-          gh pr list --state merged --limit 100 --repo "$REPO" --json number,author,assignees > merged_prs.json
-
-          echo "🔑 Checking authentication context..."
-          gh auth status
-          
-          jq -c '.[]' merged_prs.json | while read -r pr; do
-            pr_number=$(echo "$pr" | jq -r '.number')
-            author_login=$(echo "$pr" | jq -r '.author.login')
-            current_assignees=$(echo "$pr" | jq -r '.assignees[].login')
-          
-            if echo "$current_assignees" | grep -q "$author_login"; then
-              echo "✅ PR #$pr_number already assigned to $author_login"
-            else
-              echo "👤 Assigning $author_login to PR #$pr_number..."
-              if gh pr edit "$pr_number" --repo "$REPO" --add-assignee "$author_login"; then
-                echo "✅ Successfully assigned $author_login to PR #$pr_number."
-              else
-                echo "⚠️ Could not assign $author_login to PR #$pr_number. Username or permissions issue."
-              fi
-            fi
-          
-            sleep 0.5
-          done
-
-          echo "✅ Done assigning PR authors."
+      - uses: toshimaru/auto-author-assign@v2.1.1
+        with:
+          repo-token: ${{ secrets.GH_PERSONAL_TOKEN }}
