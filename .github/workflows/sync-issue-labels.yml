@@ -1,8 +1,4 @@
-#!/bin/bash
-
-# Required: gh CLI must be installed and authenticated (gh auth login)
-
-REPO="eccentriccoder01/YourRepoName" # Replace with your full repo path
+REPO="eccentriccoder01/TalkHeal" # Replace with your full repo path
 MAX_RETRIES=3
 
 echo "Fetching merged PRs for $REPO..."
