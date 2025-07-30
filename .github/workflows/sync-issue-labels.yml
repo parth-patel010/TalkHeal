@@ -1,36 +1,61 @@
-name: Sync Issue Labels to PR
+name: Label Merged PRs from Linked Issues
 
 on:
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
+  # Or run on schedule
+  # schedule:
+  #   - cron: '0 0 * * *'
 
 jobs:
-  sync-labels:
+  label-prs:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
 
-      - name: Run label sync script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout (required to use GH CLI)
+        uses: actions/checkout@v4
+
+      - name: Set up GitHub CLI
+        uses: cli/cli-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch and label merged PRs
         run: |
+          set -eo pipefail
+
+          # Fetch all closed PRs
           gh api -H "Accept: application/vnd.github+json" \
             repos/${{ github.repository }}/pulls?state=closed \
             --paginate > prs.json
 
-          jq -c '.[] | select(.merged_at != null)' prs.json | while read pr; do
+          # Loop through only merged PRs
+          jq -c '.[] | select(.merged_at != null)' prs.json | while read -r pr; do
             pr_number=$(echo "$pr" | jq -r '.number')
             pr_body=$(echo "$pr" | jq -r '.body')
 
+            # Extract issue number using regex (e.g. "#5")
             issue_number=$(echo "$pr_body" | grep -oE '#[0-9]+' | grep -oE '[0-9]+' | head -n1)
 
-            if [ -n "$issue_number" ]; then
-              issue_labels=$(gh api repos/${{ github.repository }}/issues/$issue_number | jq -r '.labels[].name')
-              
-              for label in $issue_labels; do
-                echo "Adding label '$label' to PR #$pr_number"
-                gh api -X POST repos/${{ github.repository }}/issues/$pr_number/labels \
-                  -f labels[]="$label"
-              done
+            if [ -z "$issue_number" ]; then
+              echo "No linked issue found in PR #$pr_number. Skipping..."
+              continue
             fi
-          done
+
+            echo "Fetching labels from issue #$issue_number for PR #$pr_number..."
+
+            # Get labels from issue
+            issue_labels=$(gh api repos/${{ github.repository }}/issues/$issue_number | jq -r '.labels[].name')
+
+            if [ -z "$issue_labels" ]; then
+              echo "No labels found on issue #$issue_number. Skipping labeling."
+              continue
+            fi
+
+            # Add each label to the PR
+            for label in $issue_labels; do
+              echo "Adding label '$label' to PR #$pr_number..."
+              gh api -X POST repos/${{ github.repository }}/issues/$pr_number/labels \
+                -f labels[]="$label"
+              sleep 0.2
+            done
+          done || echo "Handled a parsing or pipe error gracefully."
