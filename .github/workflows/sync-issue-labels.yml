@@ -1,53 +1,75 @@
-#!/bin/bash
-REPO = "eccentriccoder01/talkheal"
-MAX_RETRIES=3
+name: Sync Labels from Issues to Merged PRs
 
-echo "Fetching merged PRs for $REPO..."
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'  # Optional: runs every day at 2 AM UTC
 
-gh pr list --state merged --limit 200 --repo "$REPO" --json number,title,body > merged_prs.json
+jobs:
+  sync-labels:
+    runs-on: ubuntu-latest
 
-jq -c '.[]' merged_prs.json | while read -r pr; do
-  pr_number=$(echo "$pr" | jq -r '.number')
-  pr_title=$(echo "$pr" | jq -r '.title')
-  pr_body=$(echo "$pr" | jq -r '.body')
-  
-  issue_number=$(echo "$pr_title $pr_body" | grep -oE '#[0-9]+' | head -n 1 | tr -d '#')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  if [ -z "$issue_number" ]; then
-    echo "❌ PR #$pr_number has no linked issue."
-    continue
-  fi
+      - name: Install GitHub CLI and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh jq
 
-  echo "🔗 PR #$pr_number linked to issue #$issue_number"
+      - name: Authenticate GitHub CLI
+        run: gh auth setup-git
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  issue_labels=$(gh issue view "$issue_number" --repo "$REPO" --json labels | jq -r '.labels[].name')
+      - name: Fetch merged PRs and sync labels from issues
+        env:
+          REPO: eccentriccoder01/talkheal
+          MAX_RETRIES: 3
+        run: |
+          echo "📥 Fetching merged PRs for $REPO..."
+          gh pr list --state merged --limit 100 --repo "$REPO" --json number,title,body > merged_prs.json
 
-  if [ -z "$issue_labels" ]; then
-    echo "⚠️  Issue #$issue_number has no labels."
-    continue
-  fi
+          jq -c '.[]' merged_prs.json | while read -r pr; do
+            pr_number=$(echo "$pr" | jq -r '.number')
+            pr_title=$(echo "$pr" | jq -r '.title')
+            pr_body=$(echo "$pr" | jq -r '.body')
 
-  # Add each label to the PR with retry logic
-  while IFS= read -r label; do
-    success=false
-    for attempt in $(seq 1 $MAX_RETRIES); do
-      echo "🏷️  Applying label '$label' to PR #$pr_number (Attempt $attempt)..."
-      if gh pr edit "$pr_number" --repo "$REPO" --add-label "$label"; then
-        success=true
-        break
-      fi
-      echo "⚠️  Failed to apply label '$label' (Attempt $attempt). Retrying in 2s..."
-      sleep 2
-    done
+            issue_number=$(echo "$pr_title $pr_body" | grep -oE '#[0-9]+' | head -n 1 | tr -d '#')
 
-    if [ "$success" = false ]; then
-      echo "❌ Giving up on label '$label' after $MAX_RETRIES attempts."
-    fi
-  done <<< "$issue_labels"
+            if [ -z "$issue_number" ]; then
+              echo "❌ PR #$pr_number has no linked issue."
+              continue
+            fi
 
-  # Delay to avoid rate-limiting
-  sleep 0.5
+            echo "🔗 PR #$pr_number linked to issue #$issue_number"
 
-done
+            issue_labels=$(gh issue view "$issue_number" --repo "$REPO" --json labels | jq -r '.labels[].name')
 
-echo "✅ Done syncing labels."
+            if [ -z "$issue_labels" ]; then
+              echo "⚠️  Issue #$issue_number has no labels."
+              continue
+            fi
+
+            while IFS= read -r label; do
+              success=false
+              for attempt in $(seq 1 $MAX_RETRIES); do
+                echo "🏷️  Applying label '$label' to PR #$pr_number (Attempt $attempt)..."
+                if gh pr edit "$pr_number" --repo "$REPO" --add-label "$label"; then
+                  success=true
+                  break
+                fi
+                echo "⚠️  Failed to apply label '$label'. Retrying in 2s..."
+                sleep 2
+              done
+
+              if [ "$success" = false ]; then
+                echo "❌ Giving up on label '$label' after $MAX_RETRIES attempts."
+              fi
+            done <<< "$issue_labels"
+
+            sleep 0.5
+          done
+
+          echo "✅ Done syncing labels."
