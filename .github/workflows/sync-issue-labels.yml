@@ -3,7 +3,7 @@ name: Sync Labels from Issues to Merged PRs
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'  # optional daily run
+    - cron: '0 2 * * *'
 
 jobs:
   sync-labels:
