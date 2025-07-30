@@ -1,5 +1,5 @@
 #!/bin/bash
-REPO = "eccentriccoder01/TalkHeal"
+REPO = "eccentriccoder01/talkheal"
 MAX_RETRIES=3
 
 echo "Fetching merged PRs for $REPO..."
