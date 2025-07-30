@@ -1,12 +1,68 @@
 import streamlit as st
+from auth.auth_utils import init_db, register_user, authenticate_user
 
-# ✅ MUST be the first Streamlit command
-st.set_page_config(
-    page_title="TalkHeal",
-    page_icon="💬",
-    layout="wide",
-    initial_sidebar_state=st.session_state.get("sidebar_state", "expanded")
-)
+st.set_page_config(page_title="TalkHeal", page_icon="💬", layout="wide")
+
+if "db_initialized" not in st.session_state:
+    init_db()
+    st.session_state["db_initialized"] = True
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "show_signup" not in st.session_state:
+    st.session_state.show_signup = False
+
+def show_login_ui():
+    st.subheader("🔐 Login")
+    email = st.text_input("Email", key="login_email")
+    password = st.text_input("Password", type="password", key="login_password")
+    if st.button("Login"):
+        success, user = authenticate_user(email, password)
+        if success:
+            st.session_state.authenticated = True
+            # Set user_email and user_name separately for journaling page access
+            st.session_state.user_email = user["email"]
+            st.session_state.user_name = user["name"]
+            st.rerun()
+        else:
+            st.warning("Invalid email or password.")
+    st.markdown("Don't have an account? [Sign up](#)", unsafe_allow_html=True)
+    if st.button("Go to Sign Up"):
+        st.session_state.show_signup = True
+        st.rerun()
+
+def show_signup_ui():
+    st.subheader("📝 Sign Up")
+    name = st.text_input("Name", key="signup_name")
+    email = st.text_input("Email", key="signup_email")
+    password = st.text_input("Password", type="password", key="signup_password")
+    if st.button("Sign Up"):
+        success, message = register_user(name, email, password)
+        if success:
+            st.success("Account created! Please log in.")
+            st.session_state.show_signup = False
+            st.rerun()
+        else:
+            st.error(message)
+    st.markdown("Already have an account? [Login](#)", unsafe_allow_html=True)
+    if st.button("Go to Login"):
+        st.session_state.show_signup = False
+        st.rerun()
+
+if not st.session_state.authenticated:
+    if st.session_state.show_signup:
+        show_signup_ui()
+    else:
+        show_login_ui()
+else:
+    st.title(f"Welcome to TalkHeal, {st.session_state.user_name}! 💬")
+    st.markdown("Navigate to other pages from the sidebar.")
+
+    if st.button("Logout"):
+        for key in ["authenticated", "user_email", "user_name", "show_signup"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
 import google.generativeai as genai
 from core.utils import save_conversations, load_conversations
