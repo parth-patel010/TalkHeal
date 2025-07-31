@@ -1,3 +1,11 @@
+
+# Streamlit secrets and configuration
+/.streamlit/
+
+# pycache
+__pycache__/
+*.pyc
+=======
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -238,3 +246,6 @@ __pycache__/
 # Python virtual environments
 venv/
 env/
+
+# JSON files
+*.json

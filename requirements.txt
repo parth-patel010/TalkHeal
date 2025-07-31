@@ -1,5 +1,9 @@
 streamlit
 streamlit_modal
 google-generativeai
-Pillow
+geopy
 requests
+Pillow
+streamlit-lottie
+bcrypt
+streamlit_js_eval
