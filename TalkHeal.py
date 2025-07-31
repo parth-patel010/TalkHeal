@@ -22,7 +22,7 @@ if not st.session_state.authenticated:
 
 # --- TOP RIGHT BUTTONS: THEME TOGGLE & LOGOUT ---
 if st.session_state.get("authenticated", False):
-    col_spacer, col_theme, col_logout = st.columns([5, 1, 1])
+    col_spacer, col_theme, col_logout = st.columns([5, 0.5, 0.7])
     with col_spacer:
         pass  # empty spacer to push buttons right
     with col_theme:
