@@ -75,7 +75,6 @@ from components.chat_interface import render_chat_interface, handle_chat_input
 from components.emergency_page import render_emergency_page
 from components.profile import apply_global_font_size
 
-
 # --- 1. INITIALIZE SESSION STATE ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -99,7 +98,6 @@ if "selected_tone" not in st.session_state:
 
 # --- 2. SET PAGE CONFIG ---
 apply_global_font_size()
-
 
 # --- 3. APPLY STYLES & CONFIGURATIONS ---
 apply_custom_css()
@@ -156,6 +154,76 @@ else:
     <h3>🗣️ Current Chatbot Tone: <strong>{st.session_state['selected_tone']}</strong></h3>
 </div>
 """, unsafe_allow_html=True)
+        
+        # --- Mood Slider with Keyboard Navigation ---
+        def mood_slider():
+            slider_html = """
+            <div>
+                <label for="mood-slider" class="sr-only">Select your mood</label>
+                <input type="range" id="mood-slider" min="1" max="5" value="3" step="1"
+                       aria-valuemin="1" aria-valuemax="5" aria-valuenow="3"
+                       onkeydown="handleKeydown(event)" onchange="updateSliderValue(this.value)">
+                <div id="mood-label">Neutral</div>
+                <script>
+                    function handleKeydown(event) {
+                        const slider = document.getElementById('mood-slider');
+                        let value = parseInt(slider.value);
+                        if (event.key === 'ArrowLeft' && value > 1) {
+                            value--;
+                        } else if (event.key === 'ArrowRight' && value < 5) {
+                            value++;
+                        }
+                        slider.value = value;
+                        slider.setAttribute('aria-valuenow', value);
+                        updateSliderValue(value);
+                    }
+                    function updateSliderValue(value) {
+                        const labels = ['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy'];
+                        document.getElementById('mood-label').innerText = labels[value - 1];
+                        Streamlit.setComponentValue(value);
+                    }
+                </script>
+                <style>
+                    #mood-slider {
+                        width: 100%;
+                        accent-color: #ff69b4; /* Matches the soft pink/magenta UI */
+                    }
+                    #mood-label {
+                        text-align: center;
+                        margin-top: 10px;
+                        font-size: 16px;
+                        color: #333;
+                    }
+                    .sr-only {
+                        position: absolute;
+                        width: 1px;
+                        height: 1px;
+                        padding: 0;
+                        margin: -1px;
+                        overflow: hidden;
+                        clip: rect(0, 0, 0, 0);
+                        border: 0;
+                    }
+                </style>
+            </div>
+            """
+            mood_value = st.components.v1.html(slider_html, height=100, key="mood_slider")
+            return mood_value
+
+        st.subheader("😊 Track Your Mood")
+        mood = mood_slider()
+        if mood:
+            st.write(f"Selected mood: {['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy'][mood - 1]}")
+            # AI-assisted coping tips based on mood
+            coping_tips = {
+                1: "It’s okay to feel this way. Try some deep breathing exercises to find calm.",
+                2: "Consider writing down your thoughts in the journal to process your feelings.",
+                3: "A short walk or some light stretching might help you feel balanced.",
+                4: "Great to hear you’re feeling happy! Share something positive in your journal.",
+                5: "You’re shining today! Keep spreading that positivity with a kind act."
+            }
+            st.write(f"Coping tip: {coping_tips.get(mood, 'Let’s explore how you’re feeling.')}")
+        
         render_chat_interface()
         handle_chat_input(model, system_prompt=get_tone_prompt())
 
@@ -170,4 +238,4 @@ st.markdown("""
     }
     setTimeout(scrollToBottom, 100);
 </script>
-""", unsafe_allow_html=True) 
+""", unsafe_allow_html=True)
