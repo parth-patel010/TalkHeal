@@ -4,8 +4,8 @@ from datetime import datetime
 from core.utils import create_new_conversation, get_current_time
 from core.theme import get_current_theme, toggle_theme, set_palette, PALETTES
 from components.profile import initialize_profile_state, render_profile_section
+from streamlit_js_eval import streamlit_js_eval
 import requests
-import streamlit_js_eval as st_js
 
 # --- Structured Emergency Resources ---
 GLOBAL_RESOURCES = [
@@ -21,44 +21,49 @@ GLOBAL_RESOURCES = [
      "url": "https://www.childhelplineinternational.org/"}
 ]
 
-# Get the user's country for showing localized resources.
-def get_user_country():
-    # First we try Streamlit's experimental user info API (client-side, most accurate)
-    try:
-        user_info = st.experimental_user_info() if hasattr(st, "experimental_user_info") else None
-        if user_info and "country" in user_info and user_info["country"]:
-            return user_info["country"]
-    except Exception:
-        pass
 
-    # Second we try browser geolocation via JavaScript (requires Streamlit component, not always available)
+def get_country_from_coords(lat, lon):
     try:
-        js_code = """
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                fetch(`https://geocode.xyz/${pos.coords.latitude},${pos.coords.longitude}?geoit=json`)
-                    .then(resp => resp.json())
-                    .then(data => window.streamlitSendToPython(data.country));
-            },
-            err => window.streamlitSendToPython(null)
-        );
-        """
-        country = st_js.run(js_code, key="geo_country")
-        if country:
-            return country
-    except Exception:
-        pass
-
-    # (Fallback option): Third we try IP-based lookup (may return server location)
-    try:
-        resp = requests.get("https://ipinfo.io/json", timeout=2)
+        url = f"https://geocode.maps.co/reverse?lat={lat}&lon={lon}"
+        resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
-            return data.get("country", None)
-    except Exception:
+            return data.get("address", {}).get("country_code", "").upper()
+    except:
+        pass
+    return None
+
+def get_user_country():
+    # 1. Try to get user's actual browser location (via JS)
+    coords = streamlit_js_eval(
+        js_expressions="""
+            new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    position => resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    }),
+                    error => resolve(null)
+                );
+            });
+        """,
+        key="get_coords"
+    )
+
+    if coords and "latitude" in coords and "longitude" in coords:
+        country = get_country_from_coords(coords["latitude"], coords["longitude"])
+        if country:
+            return country
+
+    # 2. Fallback to IP-based location using ipapi.co (no key required)
+    try:
+        resp = requests.get("https://ipapi.co/json/", timeout=3)
+        if resp.status_code == 200:
+            return resp.json().get("country_code", "").upper()
+    except:
         pass
 
-    return None
+    return None  # final fallback if everything fails
 
 country_helplines = {
     "US": [
