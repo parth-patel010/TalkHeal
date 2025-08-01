@@ -37,7 +37,7 @@ def apply_custom_css():
         /* Font imports */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap');
-        
+
         /* CSS variables and root styling */
         :root {{
             --primary-color: {theme_config['primary']};
@@ -63,21 +63,8 @@ def apply_custom_css():
             --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }}
 
-        /* Streamlit header and toolbar fixes */
         .stApp > header {{
             background-color: transparent !important;
-        }}
-        
-        div[data-testid="stToolbar"] {{
-            visibility: hidden;
-        }}
-        
-        .stDeployButton {{
-            visibility: hidden;
-        }}
-        
-        footer {{
-            visibility: hidden;
         }}
         
         /* Main app background and styling */
@@ -92,7 +79,7 @@ def apply_custom_css():
             color: var(--text-primary);
             letter-spacing: 0.01em;
         }}
-        
+
         /* Background overlay */
         .stApp::before {{
             content: '';
@@ -101,7 +88,7 @@ def apply_custom_css():
             background: var(--background-overlay);
             z-index: -1;
         }}
-        
+
         /* Smooth scrolling */
         html {{ scroll-behavior: smooth; }}
 
@@ -260,7 +247,7 @@ def apply_custom_css():
         }}
 
         /* Emergency button styling */
-        .emergency_button {{ 
+        .emergency_button {{
             background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 20%, rgba(220, 38, 38, 0.9) 80%) !important;
             color: white !important;
             padding: 18px 24px;
@@ -479,24 +466,6 @@ def apply_custom_css():
             transform: translateY(-2px) !important; /* Add a nice hover effect */
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
         }}
-
-        /* Focus Session button styling */
-        .stButton > button[key*="focus_session"] {{
-            background: linear-gradient(135deg, #10b981, #059669) !important;
-            color: white !important;
-            border: 1px solid #10b981 !important;
-            font-weight: 600 !important;
-            transform: none !important;
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3) !important;
-        }}
-
-        .stButton > button[key*="focus_session"]:hover {{
-            background: linear-gradient(135deg, #059669, #047857) !important;
-            border-color: #059669 !important;
-            color: white !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4) !important;
-        }}
         
         /* Sidebar toggle button */
         .stApp [data-testid="stSidebarToggleButton"] button,
@@ -516,7 +485,7 @@ def apply_custom_css():
         .stTextInput > div > div > input,
         .stTextArea > div > div > textarea {{
             background: var(--glass-effect) !important;
-            background-color: #FFFFD0 !important;
+            background-color: #FFDDEE !important;
             border: 2px solid var(--border) !important;
             border-radius: var(--radius) !important;
             font-size: 1em !important;
@@ -602,39 +571,5 @@ def apply_custom_css():
             backdrop-filter: blur(10px);
             box-shadow: 0 3px 14px rgba(0,0,0,0.07);
         }}
-
-        /* Focus Session Styling */
-        .focus-session-timer {{
-            text-align: center;
-            padding: 20px;
-            background: rgba(64, 165, 120, 0.1);
-            border-radius: 15px;
-            margin: 20px 0;
-        }}
-        .focus-session-timer h2 {{
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin: 0;
-            font-weight: bold;
-        }}
-        .focus-session-timer p {{
-            color: #666;
-            margin: 5px 0;
-            font-size: 16px;
-        }}
-        .focus-quote-box {{
-            text-align: center;
-            padding: 20px;
-            background: rgba(64, 165, 120, 0.1);
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 4px solid var(--primary-color);
-        }}
-        .focus-quote-box p {{
-            font-size: 18px;
-            font-style: italic;
-            color: var(--primary-color);
-            margin: 0;
-            }}
     </style>
     """, unsafe_allow_html=True)

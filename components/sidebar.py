@@ -3,6 +3,7 @@ import webbrowser
 from datetime import datetime
 from core.utils import create_new_conversation, get_current_time
 from core.theme import get_current_theme, toggle_theme, set_palette, PALETTES
+from components.mood_dashboard import render_mood_dashboard_button, MoodTracker
 # --- Structured Emergency Resources ---
 GLOBAL_RESOURCES = [
     {"name": "Befrienders Worldwide", "desc": "Emotional support to prevent suicide worldwide.",
@@ -169,6 +170,9 @@ def render_sidebar():
             st.session_state.show_focus_session = True
             st.rerun()
 
+        # --- MOOD DASHBOARD BUTTON ---
+        render_mood_dashboard_button()
+
         # --- 3. Dynamic Mood Tracker & Micro-Journal (Fixed Tip & New Button) ---
         with st.expander("🧠 Mental Health Check"):
             st.markdown("**How are you feeling today?**")
@@ -219,6 +223,31 @@ def render_sidebar():
                     height=70
                 )
 
+                # Context reason dropdown
+                st.markdown("**Why are you feeling this way?**")
+                context_reasons = ["No specific reason", "Work", "Family", "Health", "Relationships", "Financial", "Social", "Personal goals", "Weather", "Other"]
+                selected_reason = st.selectbox(
+                    "Select a reason (optional):",
+                    options=context_reasons,
+                    key="mood_context_reason",
+                    label_visibility="collapsed"
+                )
+
+                # Activity checkboxes
+                st.markdown("**What did you do today?** (optional)")
+                activities = []
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.checkbox("✅ Exercise", key="activity_exercise"):
+                        activities.append("Exercise")
+                    if st.checkbox("✅ Socialized", key="activity_socialized"):
+                        activities.append("Socialized")
+                with col2:
+                    if st.checkbox("✅ Ate healthy", key="activity_healthy_eating"):
+                        activities.append("Ate healthy")
+                    if st.checkbox("✅ Slept well", key="activity_slept_well"):
+                        activities.append("Slept well")
+
                 tips_for_mood = {
                     "very_low": "Remember, it's okay not to be okay. Consider connecting with a professional.",
                     "low": "Even small steps help. Try a brief mindful moment or gentle activity.",
@@ -232,8 +261,27 @@ def render_sidebar():
 
                 with col_tip_save:
                     if st.button("Get Tip & Save Entry", key="save_mood_entry", use_container_width=True):
+                        # Save to mood dashboard
+                        if "mood_tracker" not in st.session_state:
+                            st.session_state.mood_tracker = MoodTracker()
+                        
+                        mood_level = st.session_state.current_mood_val
+                        notes = st.session_state.get("mood_journal_area", "")
+                        context_reason = st.session_state.get("mood_context_reason", "No specific reason")
+                        activities = []
+                        if st.session_state.get("activity_exercise", False):
+                            activities.append("Exercise")
+                        if st.session_state.get("activity_socialized", False):
+                            activities.append("Socialized")
+                        if st.session_state.get("activity_healthy_eating", False):
+                            activities.append("Ate healthy")
+                        if st.session_state.get("activity_slept_well", False):
+                            activities.append("Slept well")
+                        
+                        st.session_state.mood_tracker.add_mood_entry(mood_level, notes, context_reason, activities)
+                        
                         st.session_state.mood_tip_display = tips_for_mood
-                        st.session_state.mood_entry_status = f"Your mood entry for '{selected_mood_label}' has been noted for this session."
+                        st.session_state.mood_entry_status = f"Your mood entry for '{selected_mood_label}' has been saved to your dashboard!"
                         st.session_state.mood_journal_entry = ""
 
                 with col_ask_TalkHeal:
