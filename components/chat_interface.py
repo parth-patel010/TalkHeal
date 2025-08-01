@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from datetime import datetime
 from core.utils import get_current_time, get_ai_response, save_conversations
+import requests
 
 # Inject JS to get user's local time zone
 def set_user_time_in_session():
@@ -117,11 +118,25 @@ def handle_chat_input(model, system_prompt):
                         "time": get_current_time()
                     })
 
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+            except ValueError as e:
+                st.error("I'm having trouble understanding your message. Could you please rephrase it?")
                 active_convo["messages"].append({
                     "sender": "bot",
-                    "message": "I’m having trouble responding right now. Please try again in a moment.",
+                    "message": "I'm having trouble understanding your message. Could you please rephrase it?",
+                    "time": get_current_time()
+                })
+            except requests.RequestException as e:
+                st.error("Network connection issue. Please check your internet connection.")
+                active_convo["messages"].append({
+                    "sender": "bot",
+                    "message": "I'm having trouble connecting to my services. Please check your internet connection and try again.",
+                    "time": get_current_time()
+                })
+            except Exception as e:
+                st.error(f"An unexpected error occurred. Please try again.")
+                active_convo["messages"].append({
+                    "sender": "bot",
+                    "message": "I'm having trouble responding right now. Please try again in a moment.",
                     "time": get_current_time()
                 })
 

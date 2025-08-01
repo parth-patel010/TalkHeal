@@ -4,5 +4,11 @@ google-generativeai
 geopy
 requests
 Pillow
+<<<<<<< HEAD
 plotly
 pandas
+=======
+streamlit-lottie
+bcrypt
+streamlit_js_eval
+>>>>>>> upstream/main

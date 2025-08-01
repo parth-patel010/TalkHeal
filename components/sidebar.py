@@ -4,6 +4,10 @@ from datetime import datetime
 from core.utils import create_new_conversation, get_current_time
 from core.theme import get_current_theme, toggle_theme, set_palette, PALETTES
 from components.mood_dashboard import render_mood_dashboard_button, MoodTracker
+from components.profile import initialize_profile_state, render_profile_section
+from streamlit_js_eval import streamlit_js_eval
+import requests
+
 # --- Structured Emergency Resources ---
 GLOBAL_RESOURCES = [
     {"name": "Befrienders Worldwide", "desc": "Emotional support to prevent suicide worldwide.",
@@ -17,6 +21,69 @@ GLOBAL_RESOURCES = [
     {"name": "Child Helpline International", "desc": "A global network of child helplines for young people in need of help.",
      "url": "https://www.childhelplineinternational.org/"}
 ]
+
+
+def get_country_from_coords(lat, lon):
+    try:
+        url = f"https://geocode.maps.co/reverse?lat={lat}&lon={lon}"
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("address", {}).get("country_code", "").upper()
+    except:
+        pass
+    return None
+
+def get_user_country():
+    # 1. Try to get user's actual browser location (via JS)
+    coords = streamlit_js_eval(
+        js_expressions="""
+            new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    position => resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    }),
+                    error => resolve(null)
+                );
+            });
+        """,
+        key="get_coords"
+    )
+
+    if coords and "latitude" in coords and "longitude" in coords:
+        country = get_country_from_coords(coords["latitude"], coords["longitude"])
+        if country:
+            return country
+
+    # 2. Fallback to IP-based location using ipapi.co (no key required)
+    try:
+        resp = requests.get("https://ipapi.co/json/", timeout=3)
+        if resp.status_code == 200:
+            return resp.json().get("country_code", "").upper()
+    except:
+        pass
+
+    return None  # final fallback if everything fails
+
+country_helplines = {
+    "US": [
+        "National Suicide Prevention Lifeline: 988",
+        "Crisis Text Line: Text HOME to 741741",
+        "SAMHSA National Helpline: 1-800-662-4357"
+    ],
+    "IN": [
+        "AASRA: 9152987821",
+        "Sneha Foundation: 044-24640050"
+    ],
+    "GB": [
+        "Samaritans: 116 123"
+    ],
+    "AU": [
+        "Lifeline: 13 11 14"
+    ]
+}
+IASP_LINK = "https://findahelpline.com/"
 
 mental_health_resources_full = {
     "Depression & Mood Disorders": {
@@ -74,9 +141,17 @@ mental_health_resources_full = {
 
 def render_sidebar():
     """Renders the left and right sidebars."""
-
+    
     with st.sidebar:
+        render_profile_section()
+
+        st.markdown("### 📂 Explore")
+        st.page_link("pages/Journaling.py", label="📝 Journaling", use_container_width=True)
+        st.page_link("pages/Yoga.py", label="🧘 Yoga", use_container_width=True)
+        st.markdown("---")
+
         st.markdown("### 💬 Conversations")
+
         if "show_quick_start_prompts" not in st.session_state:
             st.session_state.show_quick_start_prompts = False
         if "pre_filled_chat_input" not in st.session_state:
@@ -88,6 +163,7 @@ def render_sidebar():
             create_new_conversation()
             st.session_state.show_quick_start_prompts = True
             st.rerun()
+
         if st.session_state.show_quick_start_prompts:
             st.markdown("---")
             st.markdown("**Start with a common topic:**")
@@ -108,6 +184,7 @@ def render_sidebar():
 
             st.markdown("---")
 
+
         if st.session_state.conversations:
             if "delete_candidate" not in st.session_state:
                 for i, convo in enumerate(st.session_state.conversations):
@@ -125,9 +202,19 @@ def render_sidebar():
                             st.session_state.active_conversation = i
                             st.rerun()
                     with col2:
-                        if st.button("🗑️", key=f"delete_{i}", type="primary"):
-                            st.session_state.delete_candidate = i
-                            st.rerun()
+                        if convo["messages"]:
+                            if st.button("🗑️", key=f"delete_{i}", type="primary", use_container_width=True):
+                                st.session_state.delete_candidate = i
+                                st.rerun()
+                        else:
+                                st.button(
+                                "🗑️",
+                                key=f"delete_{i}",
+                                type="primary",
+                                use_container_width=True,
+                                disabled=not convo["messages"]  # Disable if it's a new/empty conversation
+                            )
+
 
             else:
                 st.warning(
@@ -339,7 +426,7 @@ def render_sidebar():
                 for i, tab_title in enumerate(mental_health_resources_full.keys()):
                     with resource_tabs[i]:
                         topic_data = mental_health_resources_full[tab_title]
-                        st.markdown(f"**{tab_title}**")  # fixed typo
+                        st.markdown(f"**{tab_title}**")
                         st.info(topic_data['description'])
                         for link in topic_data['links']:
                             st.markdown(f"• [{link['label']}]({link['url']})")
@@ -350,6 +437,21 @@ def render_sidebar():
             for resource in GLOBAL_RESOURCES:
                 st.markdown(
                     f"**{resource['name']}**: {resource['desc']} [Visit Website]({resource['url']})")
+            
+            # Provide localized helplines based on user's country
+            user_country = get_user_country()
+            country_label = user_country if user_country else "your country"
+            st.markdown("### 🚨 Emergency Help")
+            if user_country and user_country in country_helplines:
+                st.markdown(f"**Helplines for {country_label}:**")
+                for line in country_helplines[user_country]:
+                    st.markdown(f"• {line}")
+            else:
+                st.markdown(
+                    f"Couldn't detect a local helpline for {country_label}. [Find help worldwide via IASP]({IASP_LINK})"
+                )
+
+            st.markdown("---")
 
         # Theme toggle in sidebar
         with st.expander("🎨 Theme Settings"):
@@ -389,22 +491,82 @@ def render_sidebar():
             ):
                 toggle_theme()
 
-        with st.expander("ℹ️ About TalkHeal"):
+        # Quizzes expander (no longer contains nested expander)
+        with st.expander("🧪 Take PsyToolkit Verified Quizzes"):
             st.markdown("""
-            **TalkHeal** is your compassionate mental health companion, designed to provide:
-
-            • 24/7 emotional support
-            • Resource guidance
-            • Crisis intervention
-            • Professional referrals
-
-            **Remember:** This is not a substitute for professional mental health care.
-
-            ---
-
-            **Created with ❤️ by [Eccentric Explorer](https://eccentriccoder01.github.io/Me)**
-
-            *"It's absolutely okay not to be okay :)"*
-
-            📅 Enhanced Version - May 2025
+            Explore scientifically backed quizzes to better understand your mental well-being. These tools are for **self-awareness** and not clinical diagnosis.
             """)
+
+            quizzes = [
+                {
+                    "name": "GAD-7 (Anxiety Assessment)",
+                    "desc": "Measures severity of generalized anxiety symptoms.",
+                    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=u8bAf",
+                    "score_info": """
+                    Score Interpretation:
+                    GAD-7 score runs from 0 to 21
+                    - 0–4: Minimal anxiety  
+                    - 5–9: Mild anxiety  
+                    - 10–14: Moderate anxiety  
+                    - 15–21: Severe anxiety
+                    """
+                },
+                {
+                    "name": "PHQ-9 (Depression Assessment)",
+                    "desc": "Screens for presence and severity of depression.",
+                    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=Hj32b",
+                    "score_info": """
+                    Score Interpretation:
+                    - 0–4: Mild depression  
+                    - 5–9: Moderate depression  
+                    - 10–14: Moderately severe depression  
+                    - 15–19: Severe depression 
+                    """
+                },
+                {
+                    "name": "The WHO-5 Well-Being Index",
+                    "desc": "Five simple non-intrusive questions to assess well-being. Score ranges from 0 (poor) to 100 (excellent).",
+                    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=POqLJ",
+                    "score_info": """
+                    Score Interpretation:
+                    -if your score is 50 or lower you should consider 
+                    -further checks on whether you suffer 
+                    -from clinical depression
+                    """
+                },
+               {
+    "name": "Depression Anxiety Stress Scales (DASS)",
+    "desc": "Measures depression, anxiety, and stress using one combined questionnaire.",
+    "url": "https://www.psytoolkit.org/cgi-bin/3.6.0/survey?s=HvfDY",
+    "score_info": "**Score Interpretation (per subscale):**\n\n- **Normal, Mild, Moderate, Severe, Extremely Severe**\n\n|          | Depression | Anxiety | Stress  |\n|----------|------------|---------|---------|\n| Normal   | 0-9        | 0-7     | 0-14    |\n| Mild     | 10-13      | 8-9     | 15-18   |\n| Moderate | 14-20      | 10-14   | 19-25   |\n| Severe   | 21-27      | 15-19   | 26-33   |\n| Extremely Severe | 28+ | 20+ | 34+ |"
+}
+            ]
+
+            for quiz in quizzes:
+                st.markdown(f"""
+                **{quiz['name']}**  
+                *{quiz['desc']}*  
+                [🔗 Take Quiz]({quiz['url']})  
+                {quiz['score_info']}
+                """)
+
+        # About section moved outside of any expander
+        st.markdown("---")
+        st.markdown("""
+        **ℹ️ About TalkHeal**  
+        Your compassionate mental health companion, designed to provide:
+        
+        • 24/7 emotional support  
+        • Resource guidance  
+        • Crisis intervention  
+        • Professional referrals  
+        
+        **Remember:** This is not a substitute for professional mental health care.
+        
+        ---
+        
+        **Created with ❤️ by [Eccentric Explorer](https://eccentriccoder01.github.io/Me)**  
+        *"It's absolutely okay not to be okay :)"*  
+        
+        📅 Enhanced Version - May 2025
+        """)
