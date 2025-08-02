@@ -187,22 +187,25 @@ else:
                 </style>
             </div>
             """
-            mood_value = st.components.v1.html(slider_html, height=100, key="mood_slider")
+            mood_value = st.components.v1.html(slider_html, height=100)
             return mood_value
 
+        # --- Mood Slider ---
         st.subheader("😊 Track Your Mood")
-        mood = mood_slider()
-        if mood:
-            st.write(f"Selected mood: {['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy'][mood - 1]}")
-            # AI-assisted coping tips based on mood
-            coping_tips = {
-                1: "It’s okay to feel this way. Try some deep breathing exercises to find calm.",
-                2: "Consider writing down your thoughts in the journal to process your feelings.",
-                3: "A short walk or some light stretching might help you feel balanced.",
-                4: "Great to hear you’re feeling happy! Share something positive in your journal.",
-                5: "You’re shining today! Keep spreading that positivity with a kind act."
-            }
-            st.write(f"Coping tip: {coping_tips.get(mood, 'Let’s explore how you’re feeling.')}")
+        mood_options = ['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy']
+        mood = st.slider(
+            'Select your mood',
+            min_value=1, max_value=5, value=3, step=1
+)
+        coping_tips = {
+    1: "It’s okay to feel this way. Try some deep breathing exercises to find calm.",
+    2: "Consider writing down your thoughts in the journal to process your feelings.",
+    3: "A short walk or some light stretching might help you feel balanced.",
+    4: "Great to hear you’re feeling happy! Share something positive in your journal.",
+    5: "You’re shining today! Keep spreading that positivity with a kind act."
+}
+        st.write(f"Selected mood: {mood_options[mood-1]}")
+        st.write(f"Coping tip: {coping_tips.get(mood, 'Let’s explore how you’re feeling.')}")
         
         render_chat_interface()
         handle_chat_input(model, system_prompt=get_tone_prompt())
