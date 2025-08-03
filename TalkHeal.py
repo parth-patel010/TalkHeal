@@ -1,68 +1,48 @@
 import streamlit as st
-from auth.auth_utils import init_db, register_user, authenticate_user
+from auth.auth_utils import init_db
+from components.login_page import show_login_page
 
 st.set_page_config(page_title="TalkHeal", page_icon="💬", layout="wide")
 
+# --- DB Initialization ---
 if "db_initialized" not in st.session_state:
     init_db()
     st.session_state["db_initialized"] = True
 
+# --- Auth State Initialization ---
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "show_signup" not in st.session_state:
     st.session_state.show_signup = False
 
-def show_login_ui():
-    st.subheader("🔐 Login")
-    email = st.text_input("Email", key="login_email")
-    password = st.text_input("Password", type="password", key="login_password")
-    if st.button("Login"):
-        success, user = authenticate_user(email, password)
-        if success:
-            st.session_state.authenticated = True
-            # Set user_email and user_name separately for journaling page access
-            st.session_state.user_email = user["email"]
-            st.session_state.user_name = user["name"]
-            st.rerun()
-        else:
-            st.warning("Invalid email or password.")
-    st.markdown("Don't have an account? [Sign up](#)", unsafe_allow_html=True)
-    if st.button("Go to Sign Up"):
-        st.session_state.show_signup = True
-        st.rerun()
-
-def show_signup_ui():
-    st.subheader("📝 Sign Up")
-    name = st.text_input("Name", key="signup_name")
-    email = st.text_input("Email", key="signup_email")
-    password = st.text_input("Password", type="password", key="signup_password")
-    if st.button("Sign Up"):
-        success, message = register_user(name, email, password)
-        if success:
-            st.success("Account created! Please log in.")
-            st.session_state.show_signup = False
-            st.rerun()
-        else:
-            st.error(message)
-    st.markdown("Already have an account? [Login](#)", unsafe_allow_html=True)
-    if st.button("Go to Login"):
-        st.session_state.show_signup = False
-        st.rerun()
-
+# --- LOGIN PAGE ---
 if not st.session_state.authenticated:
-    if st.session_state.show_signup:
-        show_signup_ui()
-    else:
-        show_login_ui()
-else:
+    show_login_page()
+    st.stop()
+
+# --- TOP RIGHT BUTTONS: THEME TOGGLE & LOGOUT ---
+if st.session_state.get("authenticated", False):
+    col_spacer, col_theme, col_logout = st.columns([5, 0.5, 0.7])
+    with col_spacer:
+        pass  # empty spacer to push buttons right
+    with col_theme:
+        is_dark = st.session_state.get('dark_mode', False)
+        if st.button("🌙" if is_dark else "☀️", key="top_theme_toggle", help="Toggle Light/Dark Mode", use_container_width=True):
+            st.session_state.dark_mode = not is_dark
+            st.session_state.theme_changed = True
+            st.rerun()
+    with col_logout:
+        if st.button("Logout", key="logout_btn", use_container_width=True):
+            for key in ["authenticated", "user_email", "user_name", "show_signup"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
+
+# --- MAIN UI (only after login) ---
+header_col1, header_col2, header_col3 = st.columns([6, 1, 1])
+with header_col1:
     st.title(f"Welcome to TalkHeal, {st.session_state.user_name}! 💬")
     st.markdown("Navigate to other pages from the sidebar.")
-
-    if st.button("Logout"):
-        for key in ["authenticated", "user_email", "user_name", "show_signup"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.rerun()
 
 import google.generativeai as genai
 from core.utils import save_conversations, load_conversations
@@ -84,7 +64,6 @@ from components.focus_session import render_focus_session
 >>>>>>> ce9c257abbf52a8ccf45e12292c64c36660656d0
 from components.emergency_page import render_emergency_page
 from components.profile import apply_global_font_size
-
 
 # --- 1. INITIALIZE SESSION STATE ---
 if "chat_history" not in st.session_state:
@@ -113,7 +92,6 @@ if "selected_tone" not in st.session_state:
 
 # --- 2. SET PAGE CONFIG ---
 apply_global_font_size()
-
 
 # --- 3. APPLY STYLES & CONFIGURATIONS ---
 apply_custom_css()
@@ -177,6 +155,79 @@ else:
     <h3>🗣️ Current Chatbot Tone: <strong>{st.session_state['selected_tone']}</strong></h3>
 </div>
 """, unsafe_allow_html=True)
+        
+        # --- Mood Slider with Keyboard Navigation ---
+        def mood_slider():
+            slider_html = """
+            <div>
+                <label for="mood-slider" class="sr-only">Select your mood</label>
+                <input type="range" id="mood-slider" min="1" max="5" value="3" step="1"
+                       aria-valuemin="1" aria-valuemax="5" aria-valuenow="3"
+                       onkeydown="handleKeydown(event)" onchange="updateSliderValue(this.value)">
+                <div id="mood-label">Neutral</div>
+                <script>
+                    function handleKeydown(event) {
+                        const slider = document.getElementById('mood-slider');
+                        let value = parseInt(slider.value);
+                        if (event.key === 'ArrowLeft' && value > 1) {
+                            value--;
+                        } else if (event.key === 'ArrowRight' && value < 5) {
+                            value++;
+                        }
+                        slider.value = value;
+                        slider.setAttribute('aria-valuenow', value);
+                        updateSliderValue(value);
+                    }
+                    function updateSliderValue(value) {
+                        const labels = ['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy'];
+                        document.getElementById('mood-label').innerText = labels[value - 1];
+                        Streamlit.setComponentValue(value);
+                    }
+                </script>
+                <style>
+                    #mood-slider {
+                        width: 100%;
+                        accent-color: #ff69b4; /* Matches the soft pink/magenta UI */
+                    }
+                    #mood-label {
+                        text-align: center;
+                        margin-top: 10px;
+                        font-size: 16px;
+                        color: #333;
+                    }
+                    .sr-only {
+                        position: absolute;
+                        width: 1px;
+                        height: 1px;
+                        padding: 0;
+                        margin: -1px;
+                        overflow: hidden;
+                        clip: rect(0, 0, 0, 0);
+                        border: 0;
+                    }
+                </style>
+            </div>
+            """
+            mood_value = st.components.v1.html(slider_html, height=100)
+            return mood_value
+
+        # --- Mood Slider ---
+        st.subheader("😊 Track Your Mood")
+        mood_options = ['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy']
+        mood = st.slider(
+            'Select your mood',
+            min_value=1, max_value=5, value=3, step=1
+)
+        coping_tips = {
+    1: "It’s okay to feel this way. Try some deep breathing exercises to find calm.",
+    2: "Consider writing down your thoughts in the journal to process your feelings.",
+    3: "A short walk or some light stretching might help you feel balanced.",
+    4: "Great to hear you’re feeling happy! Share something positive in your journal.",
+    5: "You’re shining today! Keep spreading that positivity with a kind act."
+}
+        st.write(f"Selected mood: {mood_options[mood-1]}")
+        st.write(f"Coping tip: {coping_tips.get(mood, 'Let’s explore how you’re feeling.')}")
+        
         render_chat_interface()
         handle_chat_input(model, system_prompt=get_tone_prompt())
 
