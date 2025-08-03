@@ -248,9 +248,9 @@ def render_sidebar():
         st.markdown("---")
 
         # --- DEDICATED EMERGENCY PAGE BUTTON ---
-        # if st.button("🚨 Emergency Help", use_container_width=True, type="secondary"):
-        #     st.session_state.show_emergency_page = True
-        #     st.rerun()
+        if st.button("🚨 Emergency Help", use_container_width=True, type="secondary"):
+            st.session_state.show_emergency_page = True
+            st.rerun()
 
         # --- FOCUS SESSION BUTTON ---
         if st.button("🧘 Focus Session", use_container_width=True, type="secondary", key="focus_session_button"):
