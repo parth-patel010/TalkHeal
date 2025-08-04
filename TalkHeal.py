@@ -52,6 +52,16 @@ from css.styles import apply_custom_css
 from components.header import render_header
 from components.sidebar import render_sidebar
 from components.chat_interface import render_chat_interface, handle_chat_input
+<<<<<<< HEAD
+from components.mood_dashboard import render_mood_dashboard
+# from components.emergency_page import render_emergency_page
+from components.focus_session import render_focus_session
+=======
+
+# from components.emergency_page import render_emergency_page
+from components.focus_session import render_focus_session
+
+>>>>>>> ce9c257abbf52a8ccf45e12292c64c36660656d0
 from components.emergency_page import render_emergency_page
 from components.profile import apply_global_font_size
 
@@ -62,8 +72,12 @@ if "conversations" not in st.session_state:
     st.session_state.conversations = load_conversations()
 if "active_conversation" not in st.session_state:
     st.session_state.active_conversation = -1
-if "show_emergency_page" not in st.session_state:
-    st.session_state.show_emergency_page = False
+# if "show_emergency_page" not in st.session_state:
+#     st.session_state.show_emergency_page = False
+if "show_focus_session" not in st.session_state:
+    st.session_state.show_focus_session = False
+if "show_mood_dashboard" not in st.session_state:
+    st.session_state.show_mood_dashboard = False
 if "sidebar_state" not in st.session_state:
     st.session_state.sidebar_state = "expanded"
 if "mental_disorders" not in st.session_state:
@@ -123,9 +137,16 @@ if not st.session_state.conversations:
     st.rerun()
 
 # --- 8. RENDER PAGE ---
-if st.session_state.get("show_emergency_page"):
+# if st.session_state.get("show_emergency_page"):
+#     with main_area:
+#         render_emergency_page()
+# else:
+if st.session_state.get("show_focus_session"):
     with main_area:
-        render_emergency_page()
+        render_focus_session()
+elif st.session_state.get("show_mood_dashboard"):
+    with main_area:
+        render_mood_dashboard()
 else:
     with main_area:
         render_header()
