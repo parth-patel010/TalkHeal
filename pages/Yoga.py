@@ -238,7 +238,7 @@ class YogaResponse(BaseModel):
     mood: str = Field(description="The emotional state inferred from the user's input.")
 
 def generate_yoga_asana_llm(mood_input: str):
-    gemini_api_key = st.secrets["GEMINI_API_KEY"]
+    gemini_api_key = st.secrets.get("GEMINI_API_KEY")
     if not gemini_api_key:
         st.error("Gemini API key not found in secrets.toml. Please configure it.")
         return None
@@ -279,10 +279,17 @@ def generate_yoga_asana_llm(mood_input: str):
     return None
 
 def classify_intent(user_input):
-    emotional_keywords = ["anxious", "stressed", "sad", "down", "tired", "calm", "happy", "frustrated", "overwhelmed"]
-    if any(word in user_input.lower() for word in emotional_keywords):
+    emotional_keywords = ["anxious", "stressed", "sad", "down", "tired", "calm", "happy", "frustrated", "overwhelmed", "depressed", "nervous", "worried"]
+    greeting_keywords = ["hello", "hi", "hey", "greetings"]
+    
+    user_input_lower = user_input.lower()
+    
+    if any(word in user_input_lower for word in emotional_keywords):
         return "emotional_support"
-    return "general_chat"
+    elif any(word in user_input_lower for word in greeting_keywords):
+        return "greeting"
+    else:
+        return "other"
 
 st.markdown('<div class="lottie-container">', unsafe_allow_html=True)
 if lottie_yoga:
@@ -290,46 +297,65 @@ if lottie_yoga:
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center; color: #b833a2; margin-top: -15px;'>🧘‍♀️ Yoga for Mental Wellness</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 17px;'>Tell me how you're feeling, and I'll suggest a calming yoga pose.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 17px;'>Tell me how you're feeling, and I'll suggest few calming yoga poses.</p>", unsafe_allow_html=True)
 
 user_mood_input = st.text_area("🌸 How are you feeling today?", height=100, placeholder="e.g., I'm feeling really stressed and overwhelmed with work.", key="mood_input")
 
-if st.button("Get Yoga Pose", key="get_pose_button"):
+if "user_mood" not in st.session_state:
+    st.session_state.user_mood = ""
+if "yoga_recommendation" not in st.session_state:
+    st.session_state.yoga_recommendation = None
+if "last_mood_input" not in st.session_state:
+    st.session_state.last_mood_input = ""
+
+button_text = "Show Yoga Recommendations"
+if st.session_state.last_mood_input and user_mood_input == st.session_state.last_mood_input:
+    button_text = "Retry Yoga Recommendations"
+
+if st.button(button_text, key="get_pose_button"):
     if not user_mood_input:
         st.warning("Please enter your mood to get a recommendation.")
     else:
-        st.session_state.user_mood = user_mood_input
-
-if "user_mood" in st.session_state and st.session_state.user_mood:
-    if "yoga_recommendation" not in st.session_state or st.button("Re-render", key="rerender_button"):
-        with st.spinner("Finding a perfect yoga pose for you..."):
-            yoga_recommendation = generate_yoga_asana_llm(st.session_state.user_mood)
-            st.session_state.yoga_recommendation = yoga_recommendation
-
-    yoga_recommendation = st.session_state.yoga_recommendation
-    
-    if yoga_recommendation:
-        asanas = []
-        if isinstance(yoga_recommendation, dict):
-            asanas = yoga_recommendation.get('asanas', [])
-        else:
-            asanas = yoga_recommendation.asanas
+        st.session_state.last_mood_input = user_mood_input 
         
-        if asanas:
-            for i, asana in enumerate(asanas, 1):
-                st.markdown(f"<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
-                st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.get('sanskrit_name')} ({asana.get('english_name')})</div>", unsafe_allow_html=True)
-                st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>{asana.get('benefit')}</p>", unsafe_allow_html=True)
-                
-                with st.expander(f"📋 Steps to Perform for {asana.get('english_name')}", expanded=(i==1)):
-                    steps = asana.get("steps", [])
-                    if steps:
-                        for j, step in enumerate(steps, 1):
-                            st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{j}. {step}</div>", unsafe_allow_html=True)
-                    else:
-                        st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+        intent = classify_intent(user_mood_input)
+        if intent == "emotional_support":
+            st.session_state.user_mood = user_mood_input
+            st.session_state.yoga_recommendation = None  
+        elif intent == "greeting":
+            st.info("Hello! I'm here to help with yoga poses for your mental well-being. Please tell me how you're feeling.")
+            st.session_state.user_mood = ""
+            st.session_state.yoga_recommendation = None
         else:
-            st.error("The LLM's output did not contain a valid list of asanas. Please try again.")
+            st.warning("I can only provide yoga recommendations based on your mood. Please try describing how you're feeling.")
+            st.session_state.user_mood = ""
+            st.session_state.yoga_recommendation = None
+
+if st.session_state.user_mood and not st.session_state.yoga_recommendation:
+    with st.spinner("Finding a perfect yoga pose for you..."):
+        yoga_recommendation = generate_yoga_asana_llm(st.session_state.user_mood)
+        st.session_state.yoga_recommendation = yoga_recommendation
+
+if st.session_state.yoga_recommendation:
+    asanas = []
+    if isinstance(st.session_state.yoga_recommendation, dict):
+        asanas = st.session_state.yoga_recommendation.get('asanas', [])
     else:
-        st.warning("Could not generate a yoga recommendation. Please try again.")
+        asanas = st.session_state.yoga_recommendation.asanas
+    
+    if asanas:
+        for i, asana in enumerate(asanas, 1):
+            st.markdown(f"<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.get('sanskrit_name')} ({asana.get('english_name')})</div>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>{asana.get('benefit')}</p>", unsafe_allow_html=True)
+            
+            with st.expander(f"📋 Steps to Perform for {asana.get('english_name')}", expanded=(i==1)):
+                steps = asana.get("steps", [])
+                if steps:
+                    for j, step in enumerate(steps, 1):
+                        st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{j}. {step}</div>", unsafe_allow_html=True)
+                else:
+                    st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.error("The LLM's output did not contain a valid list of asanas. Please try again.")
