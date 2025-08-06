@@ -7,6 +7,8 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import JsonOutputParser
+from dotenv import load_dotenv
+load_dotenv()
 
 st.set_page_config(page_title="🧘 Yoga for Mental Health", layout="centered")
 
@@ -262,7 +264,7 @@ def generate_yoga_asana_llm(mood_input: str):
             st.error("Please set the GOOGLE_API_KEY environment variable.")
             return None
 
-        llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.5, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, google_api_key=os.getenv("GOOGLE_API_KEY"))
         parser = JsonOutputParser(pydantic_object=YogaResponse)
 
         prompt_template = f"""
@@ -319,19 +321,30 @@ if st.button("Get Yoga Pose"):
         if intent == "emotional_support":
             with st.spinner("Finding a perfect yoga pose for you..."):
                 yoga_recommendation = generate_yoga_asana_llm(user_mood_input)
+                
                 if yoga_recommendation:
-                    asana = yoga_recommendation.asana
-                    st.markdown("<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
-                    st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.sanskrit_name} ({asana.english_name})</div>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>💖 {asana.benefit}</p>", unsafe_allow_html=True)
+                    asana = None
+                    if isinstance(yoga_recommendation, dict):
+                        asana = yoga_recommendation.get('asana')
+                    else:
+                        asana = yoga_recommendation.asana
                     
-                    with st.expander("📋 Steps to Perform"):
-                        if asana.steps:
-                            for i, step in enumerate(asana.steps, 1):
-                                st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{i}. {step}</div>", unsafe_allow_html=True)
-                        else:
-                            st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
-
+                    if asana:
+                        st.markdown("<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.get('sanskrit_name')} ({asana.get('english_name')})</div>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>{asana.get('benefit')}</p>", unsafe_allow_html=True)
+                        
+                        with st.expander("📋 Steps to Perform"):
+                            steps = asana.get("steps", [])
+                            if steps:
+                                for i, step in enumerate(steps, 1):
+                                    st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{i}. {step}</div>", unsafe_allow_html=True)
+                            else:
+                                st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.error("The LLM's output did not contain a valid 'asana' key.")
+                else:
+                    st.warning("Could not generate a yoga recommendation. Please try again.")
         else:
             st.warning("No context message. Please describe your mood or emotional state to receive a yoga recommendation.")
