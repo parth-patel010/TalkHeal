@@ -28,11 +28,16 @@
 
 * Integrated **PsyToolkit**-verified mental health quizzes for self-evaluation
 
-### 💖 Mood Tracking & Journaling
+### 💖 Mood Tracking, Journaling & Insights
 
-* Mood slider with five emotional states
-* AI-assisted coping tips based on mood
-* Micro-journaling support with reflection prompts
+* Mood slider with five emotional states, detailed entries with notes and activities
+* AI-assisted coping tips and micro-journaling with guided reflection prompts
+* Interactive dashboard with mood history, trend analysis, and personalized insights based on emotional patterns
+
+###🧘 Focus Sessions
+
+* Customizable focus timers (5 min to custom durations) with calming audio (piano, nature, or silence)
+* Includes visual breathing animation, motivational quotes, and session controls (pause/resume/end)
 
 ### 📌 Smart Prompts
 

@@ -52,6 +52,11 @@ from css.styles import apply_custom_css
 from components.header import render_header
 from components.sidebar import render_sidebar
 from components.chat_interface import render_chat_interface, handle_chat_input
+
+from components.mood_dashboard import render_mood_dashboard
+# from components.emergency_page import render_emergency_page
+from components.focus_session import render_focus_session
+# from components.emergency_page import render_emergency_page
 from components.mood_dashboard import render_mood_dashboard
 from components.focus_session import render_focus_session
 
