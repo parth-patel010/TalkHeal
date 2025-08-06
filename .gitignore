@@ -2,6 +2,9 @@
 # Streamlit secrets and configuration
 /.streamlit/
 
+# .env file
+.env
+
 # pycache
 __pycache__/
 *.pyc

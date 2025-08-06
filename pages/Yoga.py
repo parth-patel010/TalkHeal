@@ -3,6 +3,10 @@ import json
 import os
 import base64
 from streamlit_lottie import st_lottie
+from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.output_parsers import JsonOutputParser
 
 st.set_page_config(page_title="🧘 Yoga for Mental Health", layout="centered")
 
@@ -11,9 +15,9 @@ def load_lottiefile(filepath: str):
         with open(filepath, "r") as f:
             return json.load(f)
     except FileNotFoundError:
+        st.error(f"Lottie file not found at {filepath}.")
         return None
 
-# Function to encode image to base64
 def get_base64_of_bin_file(bin_file):
     try:
         with open(bin_file, 'rb') as f:
@@ -21,21 +25,12 @@ def get_base64_of_bin_file(bin_file):
         return base64.b64encode(data).decode()
     except FileNotFoundError:
         st.error(f"Background image not found at {bin_file}. Please check the path.")
-        return "" 
+        return ""
 
 lottie_yoga = load_lottiefile("assets/yoga_animation.json")
-
-# --- Load Yoga Data ---
-try:
-    with open(os.path.join("data", "Yoga.json"), "r") as f:
-        yoga_data = json.load(f)
-except FileNotFoundError:
-    yoga_data = {}
-
 background_image_path = "lavender.png"
 base64_background_image = get_base64_of_bin_file(background_image_path)
 
-# --- Custom CSS ---
 st.markdown(f"""
 <style>
 html, body, [data-testid="stAppViewContainer"] {{
@@ -60,7 +55,6 @@ html::before, body::before {{
     background: rgba(255, 255, 255, 0.3);
     z-index: -1;
 }}
-
 
 [data-testid="stVerticalBlock"],
 section[data-testid="stVerticalBlock"] > div,
@@ -252,47 +246,92 @@ p, li, strong, div {{
 
 </style>
 """, unsafe_allow_html=True)
+class YogaAsana(BaseModel):
+    sanskrit_name: str = Field(description="The Sanskrit name of the yoga pose.")
+    english_name: str = Field(description="The English name of the yoga pose.")
+    benefit: str = Field(description="A brief description of the mental health benefits of the pose.")
+    steps: list[str] = Field(description="A list of step-by-step instructions to perform the pose.")
 
-# --- Animation ---
+class YogaResponse(BaseModel):
+    asana: YogaAsana = Field(description="The recommended yoga asana.")
+    mood: str = Field(description="The emotional state inferred from the user's input.")
+
+def generate_yoga_asana_llm(mood_input: str):
+    try:
+        if not os.getenv("GOOGLE_API_KEY"):
+            st.error("Please set the GOOGLE_API_KEY environment variable.")
+            return None
+
+        llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.5, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        parser = JsonOutputParser(pydantic_object=YogaResponse)
+
+        prompt_template = f"""
+        You are an AI assistant specialized in recommending yoga asanas for mental well-being.
+        Your task is to analyze a user's emotional state and recommend a suitable yoga pose.
+        The recommendation must be in a structured JSON format.
+
+        Instructions:
+        1. Infer the user's emotional state from their input.
+        2. Choose a well-known yoga pose that helps with that specific emotion.
+        3. Provide the Sanskrit name, English name, a brief benefit, and clear, concise steps.
+        4. Ensure the output strictly follows the JSON schema provided below.
+
+        JSON Schema:
+        {parser.get_format_instructions()}
+
+        User's emotional context: "{mood_input}"
+        """
+
+        messages = [
+            SystemMessage(content="You are a helpful assistant for yoga recommendations."),
+            HumanMessage(content=prompt_template)
+        ]
+
+        response = llm.invoke(messages)
+        return parser.parse(response.content)
+    
+    except Exception as e:
+        st.error(f"An error occurred while generating the yoga recommendation. Please check your API key and try again. Error details: {e}")
+        return None
+
+def classify_intent(user_input):
+    emotional_keywords = ["anxious", "stressed", "sad", "down", "tired", "calm", "happy", "frustrated", "overwhelmed"]
+    if any(word in user_input.lower() for word in emotional_keywords):
+        return "emotional_support"
+    return "general_chat"
+
 st.markdown('<div class="lottie-container">', unsafe_allow_html=True)
 if lottie_yoga:
     st_lottie(lottie_yoga, height=220, key="yoga")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- Title & Description ---
 st.markdown("<h1 style='text-align: center; color: #b833a2; margin-top: -15px;'>🧘‍♀️ Yoga for Mental Wellness</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 17px;'>Choose your mood and explore a calming yoga asana to support your mind and body.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 17px;'>Tell me how you're feeling, and I'll suggest a calming yoga pose.</p>", unsafe_allow_html=True)
 
-# --- Dropdown --
-def format_mood(option):
-    return "Select your mood" if option == "Select your mood" else option
+user_mood_input = st.text_area("🌸 How are you feeling today?", height=100, placeholder="e.g., I'm feeling really stressed and overwhelmed with work.")
 
-mood_options = ["Select your mood"] + list(yoga_data.keys())
-selected_mood = st.selectbox(
-    "🌸 How are you feeling today?",
-    options=mood_options,
-    index=0,
-    format_func=format_mood,
-    key="mood_selector"
-)
-
-# --- Asana Section ---
-if selected_mood != "Select your mood":
-    asana = yoga_data.get(selected_mood)
-    if asana:
-        st.markdown("<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.get('sanskrit_name')} ({asana.get('english_name')})</div>", unsafe_allow_html=True)
-        st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>💖 {asana.get('benefit')}</p>", unsafe_allow_html=True)
-
-        with st.expander("📋 Steps to Perform"):
-            steps = asana.get("steps", [])
-            if steps:
-                for i, step in enumerate(steps, 1):
-                    fixed_step = step.replace("â€“", "–").replace("â€‹", "")
-                    st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{i}. {fixed_step}</div>", unsafe_allow_html=True)
-            else:
-                st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
+if st.button("Get Yoga Pose"):
+    if not user_mood_input:
+        st.warning("Please enter your mood to get a recommendation.")
     else:
-        st.warning(f"No yoga asana found for '{selected_mood}'. Please select another mood.")
+        intent = classify_intent(user_mood_input)
+        
+        if intent == "emotional_support":
+            with st.spinner("Finding a perfect yoga pose for you..."):
+                yoga_recommendation = generate_yoga_asana_llm(user_mood_input)
+                if yoga_recommendation:
+                    asana = yoga_recommendation.asana
+                    st.markdown("<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.sanskrit_name} ({asana.english_name})</div>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>💖 {asana.benefit}</p>", unsafe_allow_html=True)
+                    
+                    with st.expander("📋 Steps to Perform"):
+                        if asana.steps:
+                            for i, step in enumerate(asana.steps, 1):
+                                st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{i}. {step}</div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+        else:
+            st.warning("No context message. Please describe your mood or emotional state to receive a yoga recommendation.")
