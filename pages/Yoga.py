@@ -7,8 +7,6 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import JsonOutputParser
-from dotenv import load_dotenv
-load_dotenv()
 
 st.set_page_config(page_title="🧘 Yoga for Mental Health", layout="centered")
 
@@ -260,11 +258,12 @@ class YogaResponse(BaseModel):
 
 def generate_yoga_asana_llm(mood_input: str):
     try:
-        if not os.getenv("GOOGLE_API_KEY"):
-            st.error("Please set the GOOGLE_API_KEY environment variable.")
+        gemini_api_key = st.secrets["GEMINI_API_KEY"]
+        if not gemini_api_key:
+            st.error("Gemini API key not found in secrets.toml. Please configure it.")
             return None
 
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, google_api_key=gemini_api_key)
         parser = JsonOutputParser(pydantic_object=YogaResponse)
 
         prompt_template = f"""
