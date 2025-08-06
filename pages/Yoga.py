@@ -82,7 +82,7 @@ div[data-testid="stVerticalBlock"]:has(div.stTextArea)
     background-color: rgba(255, 255, 255, 0.7) !important; 
     border-radius: 12px;
     padding: 15px;
-    margin-top: 10px;
+    margin-top: 100px;
     margin-bottom: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     backdrop-filter: blur(8px);
@@ -219,6 +219,26 @@ button[data-testid="stExpanderToggle"]:hover {{
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }}
 
+div[data-testid="stButton"] > button {{
+    background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+    color: #4a148c !important; 
+    border: 1px solid #cccccc !important; 
+    border-radius: 12px !important;
+    font-weight: bold !important;
+    padding: 10px 20px !important;
+    box-shadow: 
+        0 4px 10px rgba(0, 0, 0, 0.1), 
+        inset 0 1px 0 rgba(255, 255, 255, 0.6); 
+    transition: all 0.2s ease;
+}}
+
+div[data-testid="stButton"] > button:hover {{
+    background: linear-gradient(to bottom, #f0f0f0, #e0e0e0);
+    box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.1), 
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}}
+
 p, li, strong, div {{
     color: #333 !important;
     text-shadow: none !important;
@@ -296,10 +316,10 @@ if lottie_yoga:
     st_lottie(lottie_yoga, height=220, key="yoga")
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center; color: #b833a2; margin-top: -15px;'>🧘‍♀️ Yoga for Mental Wellness</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #b833a2; margin-top: -15px;'>Yoga for Mental Wellness</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; font-size: 17px;'>Tell me how you're feeling, and I'll suggest few calming yoga poses.</p>", unsafe_allow_html=True)
 
-user_mood_input = st.text_area("🌸 How are you feeling today?", height=100, placeholder="e.g., I'm feeling really stressed and overwhelmed with work.", key="mood_input")
+user_mood_input = st.text_area("How are you feeling today?", height=100, placeholder="e.g., I'm feeling really stressed and overwhelmed with work.", key="mood_input")
 
 if "user_mood" not in st.session_state:
     st.session_state.user_mood = ""
