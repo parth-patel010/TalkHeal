@@ -7,6 +7,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import JsonOutputParser
+from typing import List
 
 st.set_page_config(page_title="🧘 Yoga for Mental Health", layout="centered")
 
@@ -252,8 +253,9 @@ class YogaAsana(BaseModel):
     benefit: str = Field(description="A brief description of the mental health benefits of the pose.")
     steps: list[str] = Field(description="A list of step-by-step instructions to perform the pose.")
 
+
 class YogaResponse(BaseModel):
-    asana: YogaAsana = Field(description="The recommended yoga asana.")
+    asanas: List[YogaAsana] = Field(description="A list of recommended yoga asanas.")
     mood: str = Field(description="The emotional state inferred from the user's input.")
 
 def generate_yoga_asana_llm(mood_input: str):
@@ -268,13 +270,13 @@ def generate_yoga_asana_llm(mood_input: str):
 
         prompt_template = f"""
         You are an AI assistant specialized in recommending yoga asanas for mental well-being.
-        Your task is to analyze a user's emotional state and recommend a suitable yoga pose.
+        Your task is to analyze a user's emotional state and recommend **3 suitable yoga poses**.
         The recommendation must be in a structured JSON format.
 
         Instructions:
         1. Infer the user's emotional state from their input.
-        2. Choose a well-known yoga pose that helps with that specific emotion.
-        3. Provide the Sanskrit name, English name, a brief benefit, and clear, concise steps.
+        2. Choose **3 well-known yoga poses** that help with that specific emotion.
+        3. For each pose, provide the Sanskrit name, English name, a brief benefit, and clear, concise steps.
         4. Ensure the output strictly follows the JSON schema provided below.
 
         JSON Schema:
@@ -322,27 +324,33 @@ if st.button("Get Yoga Pose"):
                 yoga_recommendation = generate_yoga_asana_llm(user_mood_input)
                 
                 if yoga_recommendation:
-                    asana = None
-                    if isinstance(yoga_recommendation, dict):
-                        asana = yoga_recommendation.get('asana')
-                    else:
-                        asana = yoga_recommendation.asana
+                    # Initialize asanas as an empty list to be safe
+                    asanas = []
                     
-                    if asana:
-                        st.markdown("<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
-                        st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.get('sanskrit_name')} ({asana.get('english_name')})</div>", unsafe_allow_html=True)
-                        st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>{asana.get('benefit')}</p>", unsafe_allow_html=True)
-                        
-                        with st.expander("📋 Steps to Perform"):
-                            steps = asana.get("steps", [])
-                            if steps:
-                                for i, step in enumerate(steps, 1):
-                                    st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{i}. {step}</div>", unsafe_allow_html=True)
-                            else:
-                                st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                    # Check if the output is a Pydantic object or a dictionary
+                    if isinstance(yoga_recommendation, dict):
+                        # Handle the case where the parser returns a dictionary
+                        asanas = yoga_recommendation.get('asanas', [])
                     else:
-                        st.error("The LLM's output did not contain a valid 'asana' key.")
+                        # Handle the case where the parser returns a Pydantic object
+                        asanas = yoga_recommendation.asanas
+                    
+                    if asanas:
+                        for asana in asanas:
+                            st.markdown("<div style='background-color: #fff0f6; padding: 1.2rem; border-radius: 16px; margin-top: 1rem;'>", unsafe_allow_html=True)
+                            st.markdown(f"<div style='font-size: 24px; font-weight: bold; color: #a94ca7;'>🧘 {asana.get('sanskrit_name')} ({asana.get('english_name')})</div>", unsafe_allow_html=True)
+                            st.markdown(f"<p style='font-size: 16px; font-style: italic; color: #555;'>{asana.get('benefit')}</p>", unsafe_allow_html=True)
+                            
+                            with st.expander("📋 Steps to Perform"):
+                                steps = asana.get("steps", [])
+                                if steps:
+                                    for i, step in enumerate(steps, 1):
+                                        st.markdown(f"<div style='background-color: #ffe6f2; border-left: 4px solid #d85fa7; padding: 0.5rem; border-radius: 10px; margin-bottom: 0.4rem; font-size: 15px;'>{i}. {step}</div>", unsafe_allow_html=True)
+                                else:
+                                    st.markdown("<div>No steps available for this asana.</div>", unsafe_allow_html=True)
+                            st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.error("The LLM's output did not contain a valid list of asanas. Please try again.")
                 else:
                     st.warning("Could not generate a yoga recommendation. Please try again.")
         else:
