@@ -244,6 +244,11 @@ def set_palette(palette_name: str):
 def toggle_theme():
     """Toggle between light and dark themes."""
     initialize_theme_state()
-    st.session_state.dark_mode = not st.session_state.dark_mode
-    st.session_state.theme_changed = True
-    st.rerun() 
+    new_state = not st.session_state.dark_mode
+
+    # Only change and rerun if state is different
+    if st.session_state.dark_mode != new_state:
+        st.session_state.dark_mode = new_state
+        st.session_state.theme_changed = True
+        st.rerun()
+ 
