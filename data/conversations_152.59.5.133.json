@@ -1,0 +1,25 @@
+[
+    {
+        "id": "20250811_022548",
+        "title": "New Conversation",
+        "date": "August 11, 2025",
+        "messages": [
+            {
+                "sender": "user",
+                "message": "I got injured Yesterday",
+                "time": "02:25",
+                "emotion_analysis": {
+                    "emotion": "fear",
+                    "intensity": 1.0,
+                    "confidence": 1.0,
+                    "crisis_level": "medium"
+                }
+            },
+            {
+                "sender": "bot",
+                "message": "Fear is a natural response, and it's okay to feel afraid. I can sense your fear is intense right now. You're safe here. Let's work through this together.\n\nWhat would make you feel safer in this moment?",
+                "time": "02:25"
+            }
+        ]
+    }
+]

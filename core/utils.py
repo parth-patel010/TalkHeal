@@ -23,12 +23,12 @@ def get_current_time():
 
 def create_new_conversation(initial_message=None):
     """
-    Creates a new conversation in the session state.
+    Creates a new conversation object.
     Optionally adds an initial message to the conversation.
-    Returns the index of the newly created conversation.
+    Returns the new conversation object.
     """
     new_convo = {
-        "id": len(st.session_state.conversations),
+        "id": datetime.now().strftime("%Y%m%d_%H%M%S"),
         "title": initial_message[:30] + "..." if initial_message and len(initial_message) > 30 else "New Conversation",
         "date": datetime.now().strftime("%B %d, %Y"),
         "messages": []
@@ -41,9 +41,7 @@ def create_new_conversation(initial_message=None):
             "time": get_current_time()
         })
     
-    st.session_state.conversations.insert(0, new_convo)
-    st.session_state.active_conversation = 0
-    return 0
+    return new_convo
 
 def clean_ai_response(response_text):
     if not response_text:
