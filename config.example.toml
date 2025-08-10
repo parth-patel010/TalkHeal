@@ -1,0 +1,32 @@
+# TalkHeal Configuration Example
+# Copy this file to .streamlit/secrets.toml and fill in your actual values
+# NEVER commit secrets.toml files to version control
+
+# Gemini API Configuration (Required)
+GEMINI_API_KEY = "your_actual_gemini_api_key_here"
+
+# Database Configuration (Optional - defaults to SQLite)
+DATABASE_URL = "sqlite:///talkheal.db"
+
+# Security Configuration (Optional)
+SECRET_KEY = "your_secret_key_for_session_encryption"
+ENCRYPTION_KEY = "your_encryption_key_for_sensitive_data"
+
+# Logging Configuration (Optional)
+LOG_LEVEL = "INFO"
+LOG_FILE = "logs/talkheal.log"
+
+# Feature Flags (Optional)
+ENABLE_CRISIS_DETECTION = true
+ENABLE_MOOD_TRACKING = true
+ENABLE_JOURNALING = true
+
+# External Services (Optional)
+CRISIS_HOTLINE_API_KEY = "your_crisis_hotline_api_key"
+WEATHER_API_KEY = "your_weather_api_key_for_mood_correlation"
+
+# Security Notes:
+# 1. API keys are now stored server-side only
+# 2. Client-side code cannot access sensitive credentials
+# 3. Environment variables take priority over secrets.toml
+# 4. All API calls are validated before execution

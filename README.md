@@ -59,6 +59,26 @@
 
 ---
 
+## 🔒 Security & Privacy
+
+### ✅ **Enterprise-Grade Security Implemented**
+- **API Key Protection**: All sensitive credentials stored server-side only
+- **Environment Variable Support**: Secure configuration management
+- **Client-Side Sanitization**: No sensitive data exposed in browser
+- **Configuration Validation**: API setup validated before application startup
+- **Security Documentation**: Comprehensive security guidelines in [SECURITY.md](SECURITY.md)
+
+### 🛡️ **Security Features**
+- Server-side API key storage
+- Secure error handling without data exposure
+- Input validation and sanitization
+- Privacy-first design principles
+- Regular security audits and updates
+
+**For detailed security information, see [SECURITY.md](SECURITY.md)**
+
+---
+
 ## 📊 Project Stats
 
 <div align="center">
@@ -131,13 +151,20 @@ For a detailed walkthrough of TalkHeal's features and how to use them, check out
    pip install -r requirements.txt
    ```
 
-3. **Set up API key:**
-   Go to your Streamlit [Secrets Settings](https://streamlit.io/cloud) and add:
-
-   ```toml
-   [gemini]
-   api_key = "YOUR_GOOGLE_GEMINI_API_KEY"
+3. **Set up API key (SECURE):**
+   
+   **For Production Deployment (Recommended):**
+   ```bash
+   export GEMINI_API_KEY="your_actual_gemini_api_key_here"
    ```
+   
+   **For Local Development:**
+   Create `.streamlit/secrets.toml` file:
+   ```toml
+   GEMINI_API_KEY = "your_actual_gemini_api_key_here"
+   ```
+   
+   **⚠️ Security Note:** API keys are now stored server-side only. Never expose them in client-side code.
 
 4. **Run the app:**
 

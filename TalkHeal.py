@@ -95,27 +95,30 @@ apply_global_font_size()
 apply_custom_css()
 model = configure_gemini()
 
-# --- 4. TONE SELECTION DROPDOWN IN SIDEBAR ---
-TONE_OPTIONS = {
-    "Compassionate Listener": "You are a compassionate listener — soft, empathetic, patient — like a therapist who listens without judgment.",
-    "Motivating Coach": "You are a motivating coach — energetic, encouraging, and action-focused — helping the user push through rough days.",
-    "Wise Friend": "You are a wise friend — thoughtful, poetic, and reflective — giving soulful responses and timeless advice.",
-    "Neutral Therapist": "You are a neutral therapist — balanced, logical, and non-intrusive — asking guiding questions using CBT techniques.",
-    "Mindfulness Guide": "You are a mindfulness guide — calm, slow, and grounding — focused on breathing, presence, and awareness."
-}
+# --- SECURITY VALIDATION ---
+if not model:
+    st.error("""
+    🚨 **Critical Security Issue Detected**
+    
+    The application cannot start due to missing or invalid API configuration.
+    This is a security feature to prevent unauthorized access.
+    
+    **Immediate Action Required:**
+    1. Set the `GEMINI_API_KEY` environment variable on your server
+    2. Or create a `.streamlit/secrets.toml` file with your API key
+    3. Restart the application
+    
+    **Security Note:** API keys are now stored server-side only.
+    """)
+    st.stop()
 
-with st.sidebar:
-    st.header("🧠 Choose Your AI Tone")
-    selected_tone = st.selectbox(
-        "Select a personality tone:",
-        options=list(TONE_OPTIONS.keys()),
-        index=0
-    )
-    st.session_state.selected_tone = selected_tone
+# --- 4. TONE SELECTION DROPDOWN IN SIDEBAR ---
+# Tone selection is now handled securely in core/config.py
+from core.config import TONE_OPTIONS, get_tone_system_prompt
 
 # --- 5. DEFINE FUNCTION TO GET TONE PROMPT ---
 def get_tone_prompt():
-    return TONE_OPTIONS.get(st.session_state.get("selected_tone", "Compassionate Listener"), TONE_OPTIONS["Compassionate Listener"])
+    return get_tone_system_prompt()
 
 # --- 6. RENDER SIDEBAR ---
 render_sidebar()
